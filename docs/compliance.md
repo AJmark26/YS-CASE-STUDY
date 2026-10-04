@@ -66,7 +66,7 @@ which gates can be measured and how.
 |---|---|---|
 | 1. Compliance matrix | `docs/compliance.md` | met |
 | 2. Capture route and device matrix | `docs/capture_protocol.md` | met |
-| 3. README to a running fresh capture in 15 minutes | `README.md` | {{readme_status}} |
+| 3. README to a running fresh capture in 15 minutes | `README.md` | met for the LiDAR tier: following the README on a fresh clone (Linux, 4 CPU cores), clone, venv, install, weights and a run on a 41 s three-room .zip took 2.2 minutes, and the plan validated. The learned models for video and photo (about 6 GB) were not part of that test |
 | 4. Reproduction bundle | `scripts/`, `scripts/fetch_weights.sh`, README "Reproduce every number" | met |
 | 5. Benchmark report | `docs/benchmark_report.md`, `bench/benchmark.json` | met |
 | 6. Fix loop bundle | `docs/fix_loop.md`, `bench/fixloop/` | met |

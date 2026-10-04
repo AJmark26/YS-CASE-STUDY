@@ -36,8 +36,9 @@ geometry stages. The photo tier is described in section 3.
 
 <figure><img src="figures/plan_with_ceiling.png" style="width:68%"><figcaption>Figure 1. LiDAR-tier plan of the
 ceiling capture (215 s walk, one command, no settings): six rooms placed in one frame with wall
-lengths, floor areas, ceiling heights, doors (red) and wide openings (purple). Solid walls were
-measured; dashed ones are inferred where the wall was not seen. Grey: fused wall points.</figcaption></figure>
+lengths, floor areas, ceiling heights, doors (red) and wide openings (purple), each with its 95%
+interval (±). Solid walls were measured; dashed ones are inferred where the wall was not seen.
+Grey: fused wall points. Grid: 2 m.</figcaption></figure>
 
 ## 3. Tiers and device matrix
 

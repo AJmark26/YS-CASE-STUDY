@@ -1,8 +1,9 @@
 # Benchmark report
 
 All numbers come from `bench/` and regenerate with the commands under "Reproduce every
-number" in the README. Code: commit `d340327` or later on `main`; the plans it scores are
-identical to those of `9414ce7` (rerun and compared polygon by polygon).
+number" in the README. Code: commit `c2ef7cd` on `main`. The LiDAR plans it scores were made by
+`d340327`; rerun with `c2ef7cd`, the bedroom cut's plan differs by at most 1e-14, and the LiDAR
+rows of `bench/benchmark.json` are unchanged. The video and photo rows come from `c2ef7cd`.
 
 ## What could be measured
 
