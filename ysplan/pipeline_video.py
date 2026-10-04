@@ -141,7 +141,7 @@ def build(capture_dir, kf_step=None, chain_step=3, max_res=0.10, min_pts=20, log
         import importlib.util
         if importlib.util.find_spec("mapanything") is None:
             log("[video] MapAnything is not installed (requirements-learned.txt, scripts/fetch_learned.sh); "
-                "falling back to monocular depth")
+                "falling back to monocular depth, whose walls are usually too smeared to recover rooms")
             depth = "mono"
     kf_step = kf_step or (40 if depth == "mapanything" else 10)
     cap = io_stray.load(capture_dir)
@@ -224,12 +224,13 @@ def build_posefree(video, kf_hz=1.5, window=8, overlap=2, moge_per_window=2, log
     EXPERIMENTAL: on the single_room clip the chained windows disagree in yaw and the walls
     smear, so no room is recovered yet (a single shared keyframe is too weak a link). Results
     are flagged `experimental` in plan.json."""
+    from . import recon
+    recon.require("the video tier without phone poses")
     import gc
     import resource
     import torch
     from mapanything.utils.image import preprocess_inputs
     from . import pipeline_photo as pp
-    from . import recon
     video = Path(video)
     vcap = cv2.VideoCapture(str(video))
     fps = vcap.get(cv2.CAP_PROP_FPS) or 30.0

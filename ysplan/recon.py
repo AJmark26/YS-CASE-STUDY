@@ -24,6 +24,16 @@ _MODEL = None
 _MOGE = None
 
 
+def require(what, modules=("torch", "mapanything", "moge")):
+    """Stop with a plain message when the learned models are not installed (they are optional and
+    large, see README, Setup)."""
+    import importlib.util
+    missing = [m for m in modules if importlib.util.find_spec(m) is None]
+    if missing:
+        raise SystemExit(f"{what} needs the learned models ({', '.join(missing)} not installed): "
+                         "pip install -r requirements-learned.txt && bash scripts/fetch_learned.sh")
+
+
 def _patch_torch_hub():
     """MapAnything builds its DINOv2 encoder through torch.hub, which asks github.com for the
     default branch name with a bare urllib request. Behind some proxies that request fails even
@@ -35,6 +45,7 @@ def _patch_torch_hub():
 def model():
     global _MODEL
     if _MODEL is None:
+        require("this tier", ("torch", "mapanything"))
         import torch
         _patch_torch_hub()
         from mapanything.models import MapAnything
@@ -46,6 +57,7 @@ def model():
 def moge():
     global _MOGE
     if _MOGE is None:
+        require("this tier", ("torch", "moge"))
         from moge.model.v2 import MoGeModel
         _MOGE = MoGeModel.from_pretrained(MOGE_ID).eval()
     return _MOGE
@@ -102,6 +114,7 @@ def reconstruct(paths, poses=None, log=print):
     """Run MapAnything on images (with EXIF intrinsics, and optional known camera->world poses in
     metres, OpenCV convention). Returns a list of dicts per image:
     T_wc (4,4), K (3,3) at depth resolution, depth (H,W) metres, mask (H,W) bool, conf (H,W)."""
+    require("this tier", ("torch", "mapanything"))
     import torch
     from mapanything.utils.image import preprocess_inputs
     views = []
