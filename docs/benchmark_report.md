@@ -226,9 +226,22 @@ tiers' 3D points after a per-room alignment (`compare_runs`, `video_vs_lidar_*` 
   3.5%. The six misses include two 0.5 m walls off by 9 and 10 cm (18 and 20%) and a 1.05 m
   wall off by 8.7 cm.
 - Its room outlines are the weak point. Rooms fragment or merge (one room for the bedroom and
-  bathroom; seven for six), and the footprint comes out 28 to 42% short, most likely because
-  predicted depth is too noisy for the ray carving to close rooms (inferred, not traced). Walls
-  scored on the LiDAR outline do not show this, so the footprint is reported beside them.
+  bathroom; seven for six), and the footprint comes out 28 to 42% short. Walls scored on the
+  LiDAR outline do not show this, so the footprint is reported beside them.
+- The cause is keyframe depth that disagrees. MapAnything's scale against LiDAR depth varies by
+  about 11% (apartment) and 16% (bedroom capture) from keyframe to keyframe, so a wall becomes a
+  band of points 0.3 to 0.5 m thick. Several wall lines are found inside each band, and each
+  room outline stops at the band's inner edge, 0.2 to 0.5 m inside the LiDAR wall on every side.
+  Low furniture counted as wall splits the living room. The camera-height floor finder also puts
+  the video floor 32 cm (apartment) and 16 cm (bedroom capture) below the LiDAR floor, because
+  blurred floor points fall below the real one.
+- No single setting fixes both captures. Seven were tried one at a time: the densest-slab floor,
+  a taller wall band, wider wall-line suppression with a looser room fill, more keyframes per
+  voxel, and the true per-keyframe scale taken from LiDAR. Each helped the apartment and cost the
+  bedroom capture its rooms or walls, or merged apartment rooms. The true scale alone recovered
+  about 4 of the 14 missing m², so the blur is not only scale. A real fix makes the keyframes'
+  depth agree (overlapping MapAnything windows aligned to each other, or a fusion that keeps one
+  surface per wall); it is not built. Use the LiDAR tier for areas.
 - Intervals: the wall error model is the LiDAR one computed on the video points, multiplied by a
   tier factor of 5 (`measure.TIER_SCALE`). At 1 only 13 of 19 differences fall inside the combined
   interval; 5 is the smallest whole factor that covers 18 of 19. It is fitted on these same 19

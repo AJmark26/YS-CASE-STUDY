@@ -207,7 +207,8 @@ Known failure modes, worst first:
 7. **Damage.** The built-in detector is classical (colour departure from the surface): on
    synthetic stains painted into real keyframes it found both classes (area within 21% and 5%,
    inside the intervals) and 3 false regions. A learned detector plugs into the same interface.
-8. **Lower-tier outlines.** Video walls land within a few centimetres, but its rooms fragment and
-   its footprint is 28 to 42% short. A photo room is measured as the part its stills saw, with an
+8. **Lower-tier outlines.** Video walls land within a few centimetres, but its footprint is 28 to
+   42% short: keyframe depth varies 11 to 16% in scale, walls blur into bands 0.3 to 0.5 m thick,
+   and outlines stop at their inner edge. A photo room is measured as the part its stills saw, with an
    interval that does not cover the unseen part: none of 8 covers LiDAR. These are confident wrong
    answers; reporting such rooms as lower bounds is the next fix.
