@@ -15,6 +15,8 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high
     cap = io_stray.load(capture_dir) if cap is None else cap
     duration = float(cap.timestamps[-1] - cap.timestamps[0])
     log(f"[{tier}] {len(cap)} frames, {duration:.0f} s")
+    for note in getattr(cap, "notes", []):
+        log(f"[{tier}] note: {note}")
     if drift:
         poses, valid, drift_rep = drift_mod.correct(cap, log=log)
     else:
@@ -90,7 +92,7 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high
         "alignment": {"yaw_rad": float(yaw), "floor_y_world": float(floor_y),
                       "note": "plan x = X cos(yaw) + Z sin(yaw), plan y = -X sin(yaw) + Z cos(yaw) in capture world"},
         "capture": {"path": str(capture_dir), "frames": int(len(cap)), "frames_used": int(valid.sum()),
-                    "duration_s": round(duration, 2)},
+                    "duration_s": round(duration, 2), "notes": list(getattr(cap, "notes", []))},
         "rooms": out_rooms,
         "openings": ops,
         "adjacency": adjacency,

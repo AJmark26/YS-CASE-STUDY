@@ -5,6 +5,10 @@ from pathlib import Path
 
 
 def detect_tier(p: Path):
+    if p.suffix.lower() == ".zip" or (p.is_dir() and not (p / "odometry.csv").exists()
+                                      and any(p.rglob("odometry.csv"))):
+        from . import io_stray
+        p = io_stray.resolve(p)
     if (p / "odometry.csv").exists():
         return "lidar" if (p / "depth").is_dir() else "video"
     if p.is_file() and p.suffix.lower() in (".mp4", ".mov"):
@@ -50,6 +54,9 @@ def main(argv=None):
     tier = a.tier or detect_tier(a.capture)
     out = a.out or Path("out") / f"{a.capture.stem}_{tier}{'_nodrift' if a.no_drift else ''}"
     out.mkdir(parents=True, exist_ok=True)
+    if tier in ("lidar", "video"):
+        from . import io_stray
+        a.capture = io_stray.resolve(a.capture)              # accepts the .zip or a parent folder
     if tier == "lidar":
         from . import pipeline_lidar
         result, cloud, U = pipeline_lidar.run(a.capture, drift=not a.no_drift)
@@ -58,6 +65,8 @@ def main(argv=None):
             cap = io_stray.load(a.capture)
             result["damage"], surfs = damage.run(cap, pipeline_lidar.run.poses, result, a.capture / "rgb.mp4", wet=a.wet)
             _save_textures(out / "textures", surfs, result["damage"]["regions"])
+        import numpy as np
+        np.save(out / "poses_world.npy", pipeline_lidar.run.poses.astype(np.float32))   # drift-corrected camera->world
     elif tier == "video":
         from . import pipeline_lidar, pipeline_video
         vc = pipeline_video.build(a.capture)
