@@ -45,9 +45,9 @@ which gates can be measured and how.
 | Same rooms at all three tiers | photo sets cut from the capture videos (`scripts/make_photo_set.py`) | photo, video and LiDAR runs of the same rooms | partial: photos are video frames, not stills |
 | A room captured twice at one tier | the three captures overlap (bedroom, bathroom, hall) | 3 capture pairs | met |
 | Laser or tape ground truth | none | | not met: no hardware; every accuracy number is a consistency number and says so |
-| Opening widths within 2 cm on 85% | `scripts/benchmark.py` (`compare_openings`) | `bench/benchmark.json` | measured, gate fails: {{openings_pass}} |
-| Ceiling height within 1.5 cm; spread within 1 cm | `scripts/ceiling_repeat.py` | `bench/ceiling_repeat_c7d28f72c6.json` | spread measured, gate fails on {{ceiling_fail}}; absolute accuracy not measurable |
-| Repeatability within 1 cm or 0.5% per wall | `scripts/benchmark.py` (`compare_runs`) | `bench/benchmark.json` | measured, gate fails: {{repeat_pass}} |
+| Opening widths within 2 cm on 85% | `scripts/benchmark.py` (`compare_openings`) | `bench/benchmark.json` | measured, gate fails: 0 of 27 openings within 2 cm; 3 found by both captures, and those pair different objects |
+| Ceiling height within 1.5 cm; spread within 1 cm | `scripts/ceiling_repeat.py` | `bench/ceiling_repeat_c7d28f72c6.json` | spread measured, gate fails on 1 of 6 rooms (R3, 1.68 cm; median 0.57 cm); absolute accuracy not measurable |
+| Repeatability within 1 cm or 0.5% per wall | `scripts/benchmark.py` (`compare_runs`) | `bench/benchmark.json` | measured, gate fails: 37.9% of 29 walls, median 1.88 cm; all 29 inside their 95% intervals |
 | Drift accountability with on/off ablation | `ysplan/drift.py`, `--no-drift` | `drift_ablation` in `bench/benchmark.json` | met |
 | Photo-tier whole-property stitch | photo tier | | {{photo_stitch_status}} |
 | Photo within 8%, video within 3%, calibrated | `scripts/benchmark.py` (tier vs LiDAR) | `bench/benchmark.json` | {{tier_gate_status}} |

@@ -48,7 +48,9 @@ python -m ysplan data/<capture_id> --tier video        # RGB video plus ARKit po
 python scripts/benchmark.py                            # repeatability, cross-tier, ablation
 ```
 
-A whole-apartment LiDAR capture (87 s) runs in about 1 to 2 minutes on 4 CPU cores with no GPU.
+On 4 CPU cores with no GPU, a one-room LiDAR capture runs in under 2 minutes. A 115 s
+whole-apartment walk takes about 1 minute for the plan and 6 minutes with damage detection
+(`--no-damage` skips it); the 215 s walk takes 2 and 12 minutes (docs/benchmark_report.md, Timing).
 
 ## Running on a new scan
 

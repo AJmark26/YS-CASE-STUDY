@@ -1,7 +1,8 @@
 # Benchmark report
 
 All numbers come from `bench/` and regenerate with the commands under "Reproduce every
-number" in the README. Code: commit `e89d462` or later on `main`.
+number" in the README. Code: commit `d340327` or later on `main`; the plans it scores are
+identical to those of `9414ce7` (rerun and compared polygon by polygon).
 
 ## What could be measured
 
@@ -53,10 +54,17 @@ re-aligned on its own walls.
 
 | Capture pair | Registration fit | Walls | Within 1 cm or 0.5% | Median difference | Inside 95% interval |
 |---|---|---|---|---|---|
-| floor_only ~ with_ceiling | 0.81 | 18 | 22% | 2.26 cm (1.55%) | 72% |
+| floor_only ~ with_ceiling | 0.81 | 18 | 22% | 2.26 cm (1.55%) | 100% (72% without drift term) |
 | floor_only ~ single_room | 0.82 | 4 | 75% | 0.74 cm (0.44%) | 100% |
 | with_ceiling ~ single_room | 0.99 | 7 | 57% | 0.84 cm (0.70%) | 100% |
-| **All** | | **29** | **37.9%** | **1.88 cm (1.10%)** | **82.8%** |
+| **All** | | **29** | **37.9%** | **1.88 cm (1.10%)** | **100% (82.8%)** |
+
+The interval check uses the intervals `plan.json` reports, which include each run's residual
+loop disagreement (2.3 to 2.4 cm on the whole-home captures, split over the two faces). With
+it every difference falls inside; the median combined 1-sigma is 3.6 cm against a median
+difference of 1.9 cm, so for measurement noise the intervals are on the wide side. Without
+the drift term 82.8% fall inside. Neither covers the outline errors of the walk-in rehearsal
+(below).
 
 Five of the six largest differences (3 to 7 cm) are in the floor-only versus with-ceiling
 pair, the pair whose room outlines differ most (round 1 traced this to outlines that sit on
@@ -121,6 +129,27 @@ Without correction the bedroom and the small room beside it merge into one (12.6
 reported instead of 9 (`plan.png` of both runs). The capture also has an ARKit relocalisation
 jump at frame 5,199 of 5,251; with correction on, the 52 frames after it are dropped.
 
+**Sensitivity to where the chunks are cut.** Drift correction cuts the walk into 180-frame
+chunks. A change meant to keep them the same (4.0 s from the measured frame rate, so 181 to
+184 frames) moved every chunk boundary by a few frames, and that alone changed the result
+(`bench/drift_chunk_sensitivity.json`):
+
+| Floor-only capture | 180-frame chunks (shipped) | 4.0 s chunks |
+|---|---|---|
+| Loop closures accepted | 8 of 9 | 7 of 10 |
+| Loop disagreement, before / after correction | 16.4 / 2.3 cm | 11.2 / 4.8 cm |
+| Largest pose correction | 51 cm | 20 cm |
+| Footprint | 51.1 m² | 45.7 m² |
+| Wall repeatability (all pairs) | 37.9%, median 1.88 cm | 37.9%, median 1.86 cm |
+| Ceiling split within 1 cm | 5 of 6 rooms | 4 of 6 rooms |
+
+The shipped setting goes back to 180 frames, because every number in this report was measured
+with it and the change was meant to keep it. The 4.0 s results were seen before going back, so
+this is not an independent choice between the two. The point is the size of the swing: which loop
+closures pass the fitness and RMSE thresholds depends on where a chunk starts, and a 10%
+change in footprint follows. Overlapping chunks, or solving with several chunk offsets and
+keeping the most consistent solution, would make this stable; neither is built.
+
 ## Walk-in rehearsal
 
 Four captures cut from the samples with `scripts/make_test_capture.py`, run cold with one
@@ -140,6 +169,14 @@ What this shows:
 - t4 found the failure that led to the floor-detection fix: before it, a capture that only
   looks up put the floor 1.75 m too high with nothing in the output saying so. Now the plan says
   the floor was not seen and reports no heights.
+- t4's 135 cm wall is a room-split failure, not a measuring error. With the phone pointed up,
+  5.7% of the fused points lie below 0.8 m, against 33.6% in the full capture, so the floor
+  rays that prove space open and the low wall points that separate rooms are mostly missing.
+  Rays that end on the ceiling carve across partitions seen only near the top, and t4's R1
+  (10.1 m²) takes in almost all of the full capture's R4 (5.4 m²; IoU 0.54 is about
+  5.4/10.1) plus the space beside it, so its 3.44 m wall is compared with a 2.09 m one. A
+  plan whose floor was not seen now says in `capture.notes` and on `plan.png` that its room
+  outlines are unreliable, not only its heights.
 - Room splitting is the weak point on short captures. Where the wall beside a doorway was not
   scanned, two rooms merge (t2 R1: 17.1 against 7.6 m²), and where a short walk sees less of a
   room, its outline takes a different jog (t1, t3: walls 12 cm off with 1 to 2 cm intervals, so
@@ -147,7 +184,21 @@ What this shows:
 
 ## Timing
 
-{{timing table: capture duration, wall-clock including damage, on 4 CPU cores, no GPU}}
+One run at a time, 4 CPU cores (Xeon 2.8 GHz), no GPU; `timing_s` in each `plan.json`.
+
+| Capture | Walk | Geometry (plan, rooms, openings) | Whole run with damage |
+|---|---|---|---|
+| t3 bedroom cut | 19 s | 12 s | 25 s |
+| t1 bedroom cut | 21 s | 13 s | 29 s |
+| t4 looking-up cut | 32 s | 19 s | 38 s |
+| `c00a170fe1` single_room | 37 s | 23 s | 61 s |
+| t2 three-room cut | 41 s | 27 s | 80 s |
+| `1a8384c3f6` floor only | 115 s | 66 s (49 s without drift correction) | 5.9 min |
+| `c7d28f72c6` with ceiling | 215 s | 123 s | 12.0 min |
+
+The damage stage unwraps every 15th frame onto every surface at 1 cm and takes about 0.9 s
+per keyframe on the whole-home captures, most of the run; `--no-damage` skips it. A one-room
+capture finishes in well under 2 minutes.
 
 ## Tiers against LiDAR
 

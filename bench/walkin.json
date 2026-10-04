@@ -3,7 +3,7 @@
   "test": "out/walkin/t1_bedroom",
   "reference": "out/c00a170fe1_lidar",
   "registration_fit": 0.998,
-  "runtime_s": 12.5,
+  "runtime_s": 28.9,
   "duration_s": 20.97,
   "notes": [],
   "rooms": [
@@ -50,7 +50,7 @@
   "test": "out/walkin/t2_three_rooms",
   "reference": "out/c7d28f72c6_lidar",
   "registration_fit": 0.998,
-  "runtime_s": 24.7,
+  "runtime_s": 79.5,
   "duration_s": 40.97,
   "notes": [
    "intrinsics from camera_matrix.csv (odometry.csv has no per-frame intrinsics)"
@@ -108,7 +108,7 @@
   "test": "out/walkin/t3_bedroom2",
   "reference": "out/1a8384c3f6_lidar",
   "registration_fit": 0.996,
-  "runtime_s": 12.3,
+  "runtime_s": 25.3,
   "duration_s": 18.99,
   "notes": [],
   "rooms": [
@@ -191,10 +191,11 @@
   "test": "out/walkin/t4_ceiling_only",
   "reference": "out/c7d28f72c6_lidar",
   "registration_fit": 0.965,
-  "runtime_s": 19.1,
+  "runtime_s": 37.9,
   "duration_s": 31.99,
   "notes": [
-   "intrinsics from camera_matrix.csv (odometry.csv has no per-frame intrinsics)"
+   "intrinsics from camera_matrix.csv (odometry.csv has no per-frame intrinsics)",
+   "floor not seen: no heights are reported, and the room outlines rest on walls seen high up and on rays that ended on the ceiling, so a partition seen only near the ceiling may not separate two rooms (walk-in rehearsal t4)"
   ],
   "rooms": [
    {

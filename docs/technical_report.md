@@ -61,7 +61,10 @@ a wall-sharpness sweep, documented in the module. Ablation on the whole-apartmen
 | Rooms | 6 | 5: the bedroom and the room beside it merge |
 | Openings reported | 9 | 14 |
 
-The remaining loop disagreement enters every wall interval (below).
+The remaining loop disagreement enters every wall interval (below). The solution is sensitive
+to where chunks are cut: chunks 1 to 4 frames longer accepted 7 loops instead of 8 and left
+4.8 cm instead of 2.3, with a footprint 10% smaller (`bench/drift_chunk_sensitivity.json`).
+Overlapping chunks or several chunk offsets would stabilise it; neither is built.
 
 ## 5. Error budget
 
@@ -84,14 +87,15 @@ the difference of two measurements falls inside their combined interval.
 
 | Check | Inside the combined 95% interval |
 |---|---|
-| Same wall, two captures (29 walls) | 82.8% |
+| Same wall, two captures (29 walls) | 100% (82.8% without the drift term) |
 | Same ceiling, two halves of a capture (6 rooms) | 6 of 6 |
 | Same opening, two captures (3 matches, all different objects) | 0 of 3 |
 | Walk-in rehearsal walls against the full capture (10 walls) | 6 of 10 |
 | {{tier calibration rows}} | |
 
-Wall intervals are close to right for measurement noise (82.8% against 95%). They are wrong
-for one error: when two captures draw a room's outline with different jogs, a wall's end moves
+For measurement noise the wall intervals are wide enough, if anything wide: with the residual
+loop disagreement they carry, every difference falls inside (median combined 1-sigma 3.6 cm
+against a median difference of 1.9 cm); without it, 82.8%. They are wrong for one error: when two captures draw a room's outline with different jogs, a wall's end moves
 by about 12 cm while its interval stays 1 to 2 cm. Widening every interval for that was tried
 and rejected (fix loop round 4): it made the intervals 2 to 10 times wider and still missed
 those errors.
@@ -109,7 +113,8 @@ those errors.
 | Photo walls within 8%, stitched | against LiDAR | {{photo_gate}} | {{photo_status}} |
 | Head-to-head against a consumer app | | needs the rooms and a LiDAR iPhone | not met |
 
-Timing, on 4 CPU cores without a GPU: {{timing sentence}}
+Timing, one run at a time on 4 CPU cores without a GPU: a one-room capture runs in 25 to 80 s;
+the 215 s whole-home walk takes 2 minutes for the plan and 12 with damage detection.
 
 ## 8. Fix loop
 
@@ -158,7 +163,8 @@ Known failure modes, worst first:
 3. **Openings.** Which doors are found differs between captures (section 8). A found door's
    width carries a 1 cm interval from its jambs, which no cross-capture match has yet confirmed.
 4. **Floor or ceiling not seen.** Reported as not observed, with a lower bound for the ceiling;
-   never guessed.
+   never guessed. Without the floor the room split also fails: in the looking-up test two rooms
+   merged and a 2.09 m wall came out 3.44 m. Such a plan now says its outlines are unreliable.
 5. **Mirrors and glass.** Ghosts seen briefly are removed by the 3-hit voxel rule; a mirror
    looked at for long produces a phantom room behind the wall.
 6. **Closed doors.** A closed door is wall: the rooms either side are separate and unconnected.
