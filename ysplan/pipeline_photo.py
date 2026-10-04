@@ -17,11 +17,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
+from shapely.geometry import Polygon
 
-from . import fuse, grid, layout, measure, openings, recon, rooms
+from . import fuse, grid, layout, measure, openings, recon, rooms, stitch
 
 SCALE_SIGMA = 0.05      # relative 1-sigma scale error of the learned depth; calibrated on the benchmark
 MAX_DEPTH = 6.0
+DOOR_SKIP_M = 1.2       # doorway stills are shot from up to 1 m outside the room they show
 
 
 @dataclass
@@ -276,7 +278,8 @@ def widen(result, scale_sigma=SCALE_SIGMA):
 
 def folder_segment(pc, owner, min_cells=200):
     """Room split for the photo tier: each room folder claims the floor its own photos' rays
-    pass over (a doorway still looks into the room it belongs to, so it carves that room).
+    pass over. A doorway still (door-from-*) is taken from the neighbouring room, so its rays
+    first cross that room's floor: it carves only beyond `DOOR_SKIP_M` from its camera.
     A cell goes to the folder with the most rays through it; rays are normalised per folder so a
     room shot with 8 photos does not swallow one shot with 3."""
     names = sorted(set(owner))
@@ -286,11 +289,24 @@ def folder_segment(pc, owner, min_cells=200):
         import cv2
         from scipy import ndimage as ndi
         votes = []
-        for nme in names:
-            ids = [i for i, o in enumerate(owner) if o == nme]
+        H, W = G.wall.shape
+        ii, jj = np.ogrid[:H, :W]
+        c, s = np.cos(G.yaw), np.sin(G.yaw)
+
+        def carve(ids):
             # a handful of photos sees little floor, so every ray that ends below 1.9 m carves
             # (in the LiDAR tier only rays ending below sill height do, to keep windows closed)
-            v = rooms.carve(G, pc, pc.T_wc, ids, end_h=(-0.05, 1.9)) + rooms.carve(G, pc, pc.T_wc, ids, end_h=(2.0, 3.6))
+            return rooms.carve(G, pc, pc.T_wc, ids, end_h=(-0.05, 1.9)) + rooms.carve(G, pc, pc.T_wc, ids, end_h=(2.0, 3.6))
+
+        for nme in names:
+            ids = [i for i, o in enumerate(owner) if o == nme]
+            door = [i for i in ids if str(pc.names[i]).startswith("door-from-")]
+            v = carve([i for i in ids if i not in door]).astype(float)
+            for i in door:
+                X, Z = pc.T_wc[i, 0, 3], pc.T_wc[i, 2, 3]
+                ci, cj = G.to_cell([X * c + Z * s, -X * s + Z * c])
+                near = (ii - ci) ** 2 + (jj - cj) ** 2 < (DOOR_SKIP_M / grid.RES) ** 2
+                v += np.where(near, 0, carve([i]))
             votes.append(v / max(1, len(ids)))
         votes = np.stack(votes)
         wd = cv2.dilate(walls.astype(np.uint8), np.ones((3, 3), np.uint8)).astype(bool)
@@ -366,17 +382,45 @@ def load_capture(path, root):
     return pc, list(z["owner"]), json.loads(str(z["diag"]))
 
 
+def plan_xy(v, yaw):
+    """World (X, *, Z) vectors -> plan (x, y): x = X cos + Z sin, y = -X sin + Z cos."""
+    c, s = np.cos(yaw), np.sin(yaw)
+    v = np.atleast_2d(v)
+    return np.stack([v[:, 0] * c + v[:, 2] * s, -v[:, 0] * s + v[:, 2] * c], 1)
+
+
+def door_views(pc, yaw, floor_y):
+    """Doorway stills (`door-from-<room>_*.jpg`) in this folder, in the room's plan frame:
+    [(room stood in, camera xy, viewing direction xy, distance to the door wall or None)].
+    The door wall is the nearest wall face across the viewing axis in the still's own depth:
+    the wall around the doorway, seen from the room the photographer stands in."""
+    cam, fwd = plan_xy(pc.T_wc[:, :3, 3], yaw), plan_xy(pc.T_wc[:, :3, 2], yaw)
+    out = []
+    for i, nm in enumerate(pc.names):
+        if not str(nm).startswith("door-from-"):
+            continue
+        n = stitch.snap_dir(fwd[i])
+        P = fuse.backproject(pc, i, max_depth=MAX_DEPTH, pose=pc.T_wc[i], stride=2)
+        h = P[:, 1] - floor_y
+        q = plan_xy(P[(h > 0.2) & (h < 2.2)], yaw) - cam[i]
+        ahead, side = q @ n, np.abs(q @ np.array([-n[1], n[0]]))
+        out.append((str(nm)[len("door-from-"):].rsplit("_", 1)[0], cam[i], fwd[i],
+                    stitch.first_wall(ahead[side < 1.5])))
+    return out
+
+
 def run(capture_dir, log=print, cache=None, gap=1.0):
     """capture_dir holds one sub-folder of photos per room. Each room is reconstructed on its own
     (all photos of a whole home in one MapAnything pass need more than 15 GB of RAM on CPU), then
     the shared LiDAR-tier geometry runs on it (no drift step: there is no trajectory).
-    Rooms are laid out side by side, `gap` metres apart, and flagged as not stitched.
+    Rooms are then stitched into one plan from doorway stills (stitch.py). Rooms without a
+    two-sided doorway link are laid out beside the plan, `gap` metres apart, and listed in
+    photo.unstitched_rooms.
     `cache`: folder of per-room .npz reconstructions from an earlier run (skips the networks)."""
     from . import pipeline_lidar
     capture_dir = Path(capture_dir)
     folders = sorted(p for p in capture_dir.iterdir() if p.is_dir() and recon.list_images(p))
-    out_rooms, clouds, Us, diags = [], [], [], {}
-    x0 = 0.0
+    own, diags, views, cams = {}, {}, {}, {}
     t0 = time.time()
     for f in folders:
         paths = recon.list_images(f)
@@ -400,35 +444,64 @@ def run(capture_dir, log=print, cache=None, gap=1.0):
                 continue
             res["rooms"] = [fb]
         r = max(res["rooms"], key=lambda q: q["floor_area_m2"]["value"])
-        poly = np.array(r["polygon"])
-        dx = x0 - poly[:, 0].min()
-        dy = -poly[:, 1].min()
-        r = _shift_room(r, dx, dy)
+        r["openings"] = [o for o in res["openings"] if r_id_in(o, res["rooms"], r)]
         r["id"] = f.name
         for w in r["walls"]:
             w["id"] = f"{f.name}-W{w['id'].split('-W')[-1]}"
-        r["openings"] = [_shift_opening(o, dx, dy) for o in res["openings"] if r_id_in(o, res["rooms"], r)]
-        r["frame_offset_m"] = [round(dx, 4), round(dy, 4)]
         r["yaw_rad_in_own_frame"] = res["alignment"]["yaw_rad"]
-        out_rooms.append(r)
-        clouds.append(cloud + [dx, dy])
-        Us.append(U + [dx, 0, dy])
-        x0 = float(np.array(r["polygon"])[:, 0].max()) + gap
+        own[f.name] = (r, cloud, U)
+        views[f.name] = door_views(pc, res["alignment"]["yaw_rad"], res["alignment"]["floor_y_world"])
+        cams[f.name] = ([str(n) for n in pc.names], plan_xy(pc.T_wc[:, :3, 3], res["alignment"]["yaw_rad"]))
         log(f"[photo] {f.name}: bbox {r['bbox_m']} m, area {r['floor_area_m2']['value']:.2f} m2, "
-            f"scale x{diag['scale_vs_multiview']} (spread {diag['scale_spread_rel']})")
-    ops = []
-    for r in out_rooms:
+            f"scale x{diag['scale_vs_multiview']} (spread {diag['scale_spread_rel']}), "
+            f"{len(views[f.name])} doorway photos")
+    polys = {n: Polygon(r["polygon"]) for n, (r, _, _) in own.items()}
+    doors = {n: [(((o["from"] + o["to"]) / 2, o["line"]) if o["axis"] == "u" else (o["line"], (o["from"] + o["to"]) / 2),
+                  o["axis"]) for o in r["openings"] if o["type"] in ("door", "opening")] for n, (r, _, _) in own.items()}
+    pose, links, unplaced, one_sided = stitch.place(polys, views, doors)
+    # rooms with no two-sided link go to the right of the stitched plan, side by side
+    x0 = max((stitch.apply_poly(polys[n], *pose[n]).bounds[2] for n in pose), default=-gap) + gap
+    for n in sorted(unplaced, key=lambda n: -polys[n].area):
+        b = polys[n].bounds
+        pose[n] = (0, np.array([x0 - b[0], -b[1]]))
+        x0 += b[2] - b[0] + gap
+    linked = {n for l in links for n in l["rooms"]}
+    out_rooms, clouds, Us, ops, cameras = [], [], [], [], {}
+    for n in sorted(own):
+        r, cloud, U = own[n]
+        k, t = pose[n]
+        r = _move_room(r, k, t)
+        r["stitched"] = n in linked
+        r["pose_in_plan"] = {"rotation_deg": 90 * k, "offset_m": [round(float(t[0]), 4), round(float(t[1]), 4)]}
         for o in r.pop("openings"):
-            o["rooms"] = [r["id"]]
+            o = _move_opening(o, k, t)
+            o["rooms"] = [n]
             ops.append(o)
+        out_rooms.append(r)
+        names, cxy = cams[n]
+        cameras[n] = [{"photo": nm, "xy": [round(float(x), 3), round(float(y), 3)]}
+                      for nm, (x, y) in zip(names, stitch.apply_xy(cxy, k, t))]
+        clouds.append(stitch.apply_xy(cloud, k, t))
+        Uxy = stitch.apply_xy(U[:, [0, 2]], k, t)
+        Us.append(np.stack([Uxy[:, 0], U[:, 1], Uxy[:, 1]], 1))
     for i, o in enumerate(ops, 1):
         o["id"] = f"{o['type'][0].upper()}{i}"
+    unstitched = sorted(n for n in own if n not in linked)
+    if links:
+        log(f"[photo] stitched {len(linked)} of {len(own)} rooms via doorways "
+            + ", ".join("-".join(l["rooms"]) for l in links))
+    if unstitched:
+        log(f"[photo] not stitched (no doorway photo from both sides): {', '.join(unstitched)}")
     result = {"schema_version": "1.0", "tier": "photo", "units": "m",
-              "frame": "each room in its own gravity- and Manhattan-aligned frame, laid out side by side "
-                       "(not stitched: see photo.stitched)",
+              "frame": "gravity-aligned plan; rooms joined at doorways seen from both sides "
+                       "(see photo.stitched); unlinked rooms are laid out to the right",
               "capture": {"path": str(capture_dir), "rooms": len(folders)},
-              "rooms": out_rooms, "openings": ops, "adjacency": [],
-              "photo": {"per_room": diags, "scale_sigma_rel": SCALE_SIGMA, "stitched": False},
+              "rooms": out_rooms, "openings": ops,
+              "adjacency": [{"rooms": l["rooms"], "via": []} for l in links],   # joined by doorway photos (photo.links)
+              "photo": {"per_room": diags, "scale_sigma_rel": SCALE_SIGMA,
+                        "stitched": bool(links) and not unstitched, "links": links,
+                        "unstitched_rooms": unstitched, "one_sided_doorways": one_sided,
+                        "cameras": cameras},
               "timing_s": {"total_s": round(time.time() - t0, 1)}}
     cloud = np.concatenate(clouds) if clouds else np.zeros((0, 2))
     U = np.concatenate(Us) if Us else np.zeros((0, 3))
@@ -439,24 +512,30 @@ def r_id_in(o, rooms_, r):
     return o.get("rooms", [None])[0] == r["id"] or len(rooms_) == 1
 
 
-def _shift_room(r, dx, dy):
+def _move_room(r, k, t):
+    """Rotate a room by 90 deg * k about the origin, then shift by t."""
+    from .stitch import apply_xy
+    mv = lambda p: [round(float(v), 4) for v in apply_xy(p, k, t)]
     r = dict(r)
-    r["polygon"] = [[round(x + dx, 4), round(y + dy, 4)] for x, y in r["polygon"]]
-    r["label_point"] = [r["label_point"][0] + dx, r["label_point"][1] + dy]
-    for w in r["walls"]:
-        w["from"] = [round(w["from"][0] + dx, 4), round(w["from"][1] + dy, 4)]
-        w["to"] = [round(w["to"][0] + dx, 4), round(w["to"][1] + dy, 4)]
+    r["polygon"] = [mv(p) for p in r["polygon"]]
+    r["label_point"] = mv(r["label_point"])
+    r["walls"] = [dict(w, **{"from": mv(w["from"]), "to": mv(w["to"])}) for w in r["walls"]]
+    if k % 2:
+        r["bbox_m"] = r["bbox_m"][::-1]
     return r
 
 
-def _shift_opening(o, dx, dy):
+def _move_opening(o, k, t):
+    """Same move for an opening: axis "u" is a wall along plan x at y = line, "v" along y."""
+    from .stitch import apply_xy
     o = dict(o)
-    if o["axis"] == "u":                       # wall along u at v = line
-        o["line"] += dy
-        o["from"] += dx
-        o["to"] += dx
+    ends = [[o["from"], o["line"]], [o["to"], o["line"]]] if o["axis"] == "u" else \
+           [[o["line"], o["from"]], [o["line"], o["to"]]]
+    a, b = apply_xy(ends, k, t)
+    if abs(b[0] - a[0]) >= abs(b[1] - a[1]):
+        o["axis"], o["line"] = "u", float(a[1])
+        o["from"], o["to"] = sorted([float(a[0]), float(b[0])])
     else:
-        o["line"] += dx
-        o["from"] += dy
-        o["to"] += dy
+        o["axis"], o["line"] = "v", float(a[0])
+        o["from"], o["to"] = sorted([float(a[1]), float(b[1])])
     return o
