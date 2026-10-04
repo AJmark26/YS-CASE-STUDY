@@ -7,7 +7,7 @@ from . import drift as drift_mod
 from . import fuse, grid, io_stray, layout, measure, openings, rooms
 
 
-def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar"):
+def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high_rays=True):
     """Geometry pipeline shared by all tiers. `cap` defaults to the LiDAR capture; the video tier
     passes a VideoCapture whose depth maps come from scaled monocular depth."""
     t0 = time.time()
@@ -33,10 +33,13 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar"):
     carve_ids = frames[::5] if tier == "lidar" else frames
     c_low = rooms.carve(G, cap, poses, carve_ids)
     c_mid = rooms.carve(G, cap, poses, carve_ids, end_h=(0.9, 1.9))
+    # rays ending on the ceiling also prove the floor below them is open (captures that look up a
+    # lot see little floor); they stay inside the room unless they pass through a high window
+    c_high = rooms.carve(G, cap, poses, carve_ids, end_h=(2.0, 3.6)) if high_rays else 0
     t = poses[frames, :3, 3]
     c, s = np.cos(yaw), np.sin(yaw)
     traj = np.stack([t[:, 0] * c + t[:, 2] * s, -t[:, 0] * s + t[:, 2] * c], 1)
-    free, walls = rooms.free_space(G, G.to_cell(traj), c_low, wall_count=8 if tier == "lidar" else "p70")
+    free, walls = rooms.free_space(G, G.to_cell(traj), c_low + c_high, wall_count=8 if tier == "lidar" else "p70")
     labels = rooms.segment(free & ~rooms.close_doors(walls))
     polys, _, _ = layout.room_polygons(U, G, labels)
     # A region the camera never entered was only seen through a doorway: report it, but keep it
@@ -97,7 +100,7 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar"):
     }
     m = (U[:, 1] > 0.3) & (U[:, 1] < 1.9)
     cloud = U[m][:, [0, 2]][::7]
-    return result, cloud
+    return result, cloud, U
 
 
 def _adjacency(polys, ops, touch=0.35):
