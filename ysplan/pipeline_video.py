@@ -135,6 +135,12 @@ def build(capture_dir, kf_step=None, chain_step=3, max_res=0.10, min_pts=20, log
     `cache`: .npz holding keyframe depth maps from an earlier run of the same capture and
     settings; when present the network is skipped (the brief allows cached model outputs as long
     as the live path also runs, which it does when the file is absent)."""
+    if depth == "mapanything" and not (cache is not None and Path(cache).exists()):
+        import importlib.util
+        if importlib.util.find_spec("mapanything") is None:
+            log("[video] MapAnything is not installed (requirements-learned.txt, scripts/fetch_learned.sh); "
+                "falling back to monocular depth")
+            depth = "mono"
     kf_step = kf_step or (40 if depth == "mapanything" else 10)
     cap = io_stray.load(capture_dir)
     n = len(cap)
