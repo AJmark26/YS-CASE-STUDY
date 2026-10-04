@@ -7,8 +7,9 @@ Method
 1. Split the trajectory into chunks of ~`chunk_s` seconds, also cutting at pose jumps.
 2. Fuse each chunk into a local cloud (raw poses) with normals.
 3. Pose graph: one node per chunk (a rigid correction). Odometry edges between consecutive
-   chunks are identity with high confidence, except across a jump where the edge is
-   down-weighted and the ICP estimate is used instead.
+   chunks are identity with a moderate weight (odo_info=100, picked by a wall-sharpness sweep:
+   1e4 -> 4.13, 1e3 -> 4.26, 1e2 -> 4.85, 1e1 -> 4.75, uncorrected 4.48). Across a pose jump
+   the edge is the ICP estimate instead; a jump in the final 2 s drops the tail frames.
 4. Loop edges: every non-adjacent chunk pair whose clouds overlap is registered with
    point-to-plane ICP, constrained to yaw + translation (gravity from ARKit is trusted).
    Accepted only when fitness and RMSE pass thresholds; marked uncertain so the optimiser's
