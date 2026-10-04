@@ -24,7 +24,7 @@ Status key: **met**, **partial** (exists, with the gap named), **not met** (and 
 |---|---|---|---|
 | Per-room walls, ceiling height, floor area, openings | `ysplan/measure.py`, `ysplan/openings.py` | `rooms[]`, `openings[]` in `plan.json` | met |
 | Stitched multi-room plan with adjacency | `ysplan/rooms.py`, `ysplan/pipeline_lidar.py` | `rooms[]` in one frame, `adjacency[]`, `plan.png` | met (LiDAR, video); not met for photos: rooms are measured one by one and laid out side by side |
-| Damage regions with class and metric extent | `ysplan/damage.py` | `damage.regions[]` with `area_m2` per surface | met with a classical detector; learned detector not built (the detector interface accepts one) |
+| Damage regions with class and metric extent | `ysplan/damage.py` | `damage.regions[]` with `area_m2` per surface | met at the LiDAR tier with a classical detector (the video and photo tiers do not run damage detection); learned detector not built (the detector interface accepts one) |
 | Concealed-damage flags with the rule that fired | `ysplan/damage.py` (`RULES`, CD1 to CD5) | `damage.flags[]` with `rule` and evidence | met |
 | Scope line items keyed to surfaces | `ysplan/damage.py` | `damage.scope[]` keyed to wall, floor and ceiling ids | met |
 | Interval on every measurement | `ysplan/measure.py` | every value is `{value, sigma, ci95}` | met |

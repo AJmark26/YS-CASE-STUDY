@@ -3,9 +3,9 @@
 ## 1. What runs, and what the numbers are
 
 `python -m ysplan <capture>` turns one phone capture into `plan.json` and `plan.png`. The
-output covers rooms, walls, ceiling heights, floor areas, openings, adjacency, damage regions,
-concealed-damage flags and scope items, each measurement with a 95% interval, in the schema of
-`docs/plan.schema.json`. The tier is picked from what the capture contains. The capture route
+output covers rooms, walls, ceiling heights, floor areas, openings and adjacency, plus damage
+regions, concealed-damage flags and scope items at the LiDAR tier, each measurement with a 95%
+interval, in the schema of `docs/plan.schema.json`. The tier is picked from what the capture contains. The capture route
 is Route 2: the free Stray Scanner app for LiDAR, the stock Camera app for video and photos,
 and a one-page protocol (`docs/capture_protocol.md`).
 
