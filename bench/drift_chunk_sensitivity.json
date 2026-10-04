@@ -1,0 +1,59 @@
+{
+ "note": "Same code and captures except the drift chunk length: 180 frames (3 s at an assumed 60 fps; 3.9 s at the captures' 46 fps) against 4.0 s from the measured frame rate (181 to 184 frames). Moving every chunk boundary by 1 to 4 frames changes which loops are accepted.",
+ "chunks_180_frames": {
+  "floor_only_drift": {
+   "chunks": 29,
+   "loops_accepted": 8,
+   "loops_rejected": 1,
+   "loop_misalignment_cm_before": 16.392069451685458,
+   "loop_misalignment_cm_after": 2.264519941021915,
+   "max_correction_m": 0.5086136310419407
+  },
+  "floor_only_footprint_m2": 51.1329,
+  "floor_only_rooms": 6,
+  "wall_repeatability": {
+   "n_walls": 29,
+   "pass_rate": 0.379,
+   "median_abs_diff_cm": 1.88
+  },
+  "openings": {
+   "n_openings": 27,
+   "matched": 3,
+   "pass_rate": 0.0
+  },
+  "ceiling_split": {
+   "pass_rate": 0.833,
+   "median_spread_cm": 0.57,
+   "max_spread_cm": 1.68
+  },
+  "commit": "9414ce7 outputs"
+ },
+ "chunks_4_0_s": {
+  "floor_only_drift": {
+   "chunks": 29,
+   "loops_accepted": 7,
+   "loops_rejected": 3,
+   "loop_misalignment_cm_before": 11.189462040540118,
+   "loop_misalignment_cm_after": 4.780032123319371,
+   "max_correction_m": 0.19917586893786046
+  },
+  "floor_only_footprint_m2": 45.7355,
+  "floor_only_rooms": 6,
+  "wall_repeatability": {
+   "n_walls": 29,
+   "pass_rate": 0.379,
+   "median_abs_diff_cm": 1.86
+  },
+  "openings": {
+   "n_openings": 35,
+   "matched": 4,
+   "pass_rate": 0.029
+  },
+  "ceiling_split": {
+   "pass_rate": 0.667,
+   "median_spread_cm": 0.94,
+   "max_spread_cm": 1.8
+  },
+  "commit": "bf35d71 outputs"
+ }
+}

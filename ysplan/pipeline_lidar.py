@@ -105,6 +105,11 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high
         "drift": drift_rep,
         "timing_s": {k: round(v, 1) for k, v in timing.items()},
     }
+    if not floor_seen:
+        result["capture"]["notes"].append(
+            "floor not seen: no heights are reported, and the room outlines rest on walls seen high up "
+            "and on rays that ended on the ceiling, so a partition seen only near the ceiling may not "
+            "separate two rooms (walk-in rehearsal t4)")
     m = (U[:, 1] > 0.3) & (U[:, 1] < 1.9)
     cloud = U[m][:, [0, 2]][::7]
     run.poses = poses                                # drift-corrected, for later stages (damage)

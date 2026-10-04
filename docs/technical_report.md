@@ -22,7 +22,7 @@ both measurements share is invisible to it. `docs/benchmark_report.md` has every
 | Stage | What it does | Why this way |
 |---|---|---|
 | Load | Stray Scanner folder or .zip, current and older export | The walk-in device and app version are unknown |
-| Drift | 4 s chunks; loop edges by point-to-plane ICP restricted to yaw and translation; pose graph | ARKit gravity is reliable, heading and position drift are not; 4 degrees of freedom keep it well conditioned |
+| Drift | 180-frame chunks (about 4 s); loop edges by point-to-plane ICP restricted to yaw and translation; pose graph | ARKit gravity is reliable, heading and position drift are not; 4 degrees of freedom keep it well conditioned |
 | Fuse | Depth with ARKit confidence 2 into 2 cm voxels with at least 3 hits | Removes flying pixels and most mirror and glass ghosts |
 | Floor, axes | Floor = lowest surface covering 2 m² at least 1.1 m below the camera, else "not seen"; Manhattan heading from wall points | A silently wrong floor ruins every height (found by the walk-in rehearsal) |
 | Rooms | 2D ray carving (a ray that ends on the floor or ceiling proves the space it crossed is empty), doorways closed, watershed | Free space is observed directly, not inferred from walls that furniture hides |
@@ -48,7 +48,7 @@ measured; dashed ones are inferred where the wall was not seen. Grey: fused wall
 ## 4. Drift
 
 ARKit odometry is locally accurate but drifts over a 50 m walk and can relocalise mid-capture.
-Both show as doubled walls. `ysplan/drift.py` cuts the trajectory into 4 s chunks (and at pose
+Both show as doubled walls. `ysplan/drift.py` cuts the trajectory into 180-frame chunks, about 4 s (and at pose
 jumps), fuses each chunk, registers every overlapping non-adjacent pair with yaw-and-translation
 ICP, accepts a loop only above a fitness and below an RMSE threshold, and solves a pose graph
 whose loop edges can still be rejected by the optimiser. The odometry edge weight was picked by

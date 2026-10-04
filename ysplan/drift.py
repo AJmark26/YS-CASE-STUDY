@@ -4,7 +4,10 @@ ARKit odometry is locally excellent but accumulates drift over a 50 m walk, and 
 relocalise mid-capture (a sudden pose jump). Both show up as doubled walls in the plan.
 
 Method
-1. Split the trajectory into chunks of ~`chunk_s` seconds, also cutting at pose jumps.
+1. Split the trajectory into chunks of `chunk_frames` frames (180: 3 s at 60 fps, about 4 s at
+   the 46 fps the sample captures record), also cutting at pose jumps. The result is sensitive
+   to where the chunks are cut: 4.0 s chunks (1 to 4 frames longer) accepted 7 loops instead
+   of 8 on the floor-only capture and left 4.8 cm instead of 2.3 cm (docs/benchmark_report.md).
 2. Fuse each chunk into a local cloud (raw poses) with normals.
 3. Pose graph: one node per chunk (a rigid correction). Odometry edges between consecutive
    chunks are identity with a moderate weight (odo_info=100, picked by a wall-sharpness sweep:
@@ -49,7 +52,7 @@ def frame_rate(cap, default=60.0):
     return default
 
 
-def make_chunks(cap, chunk_s=4.0, min_tail_s=2.0):
+def make_chunks(cap, chunk_frames=180, min_tail_s=2.0):
     """Chunk boundaries. Frames after a pose jump that ends less than `min_tail_s` before the
     end of the capture are dropped: too few frames to register, and ARKit has just relocalised."""
     n = len(cap)
@@ -57,7 +60,7 @@ def make_chunks(cap, chunk_s=4.0, min_tail_s=2.0):
     jumps = find_jumps(cap)
     if jumps and n - jumps[-1] < min_tail_s * fps:
         n = jumps[0] if jumps[-1] - jumps[0] < fps else jumps[-1]
-    size = int(chunk_s * fps)
+    size = int(chunk_frames)
     cuts = set(range(0, n, size)) | {j for j in jumps if j < n} | {n}
     cuts = sorted(cuts)
     chunks = []
@@ -90,9 +93,9 @@ def _icp(src, dst, max_dist=0.10):
     return T, ev.fitness, ev.inlier_rmse, info
 
 
-def correct(cap, chunk_s=4.0, min_overlap=0.3, min_fitness=0.35, max_rmse=0.03, odo_info=100.0, log=print):
+def correct(cap, chunk_frames=180, min_overlap=0.3, min_fitness=0.35, max_rmse=0.03, odo_info=100.0, log=print):
     """Return (corrected poses (N,4,4), valid frame mask (N,), report dict)."""
-    chunks = make_chunks(cap, chunk_s)
+    chunks = make_chunks(cap, chunk_frames)
     jumps = set(find_jumps(cap))
     clouds = [_chunk_cloud(cap, a, b) for a, b in chunks]
     m = len(chunks)

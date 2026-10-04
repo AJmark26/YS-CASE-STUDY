@@ -66,7 +66,10 @@ def plan(result, path, title=None, cloud=None):
                        Line2D([], [], color="#9467bd", lw=2.5, label="opening"),
                        Line2D([], [], color="#1f77b4", lw=2.5, label="window")],
               loc="upper right", fontsize=8)
-    ax.set_title(title or "Stitched floor plan (lengths in m)")
+    title = title or "Stitched floor plan (lengths in m)"
+    if not result.get("alignment", {}).get("floor_observed", True):
+        title += "\nfloor not seen: no heights, room outlines unreliable (see capture.notes)"
+    ax.set_title(title)
     fig.tight_layout()
     fig.savefig(path, dpi=150)
     plt.close(fig)
