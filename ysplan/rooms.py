@@ -41,9 +41,13 @@ def carve(G, cap, poses, frame_ids, stride=8, step_m=0.02, stop_m=0.06, end_h=(-
     return hits
 
 
-def free_space(G, traj_cells, carved=None, min_rays=2, close_m=0.30):
-    """Interior free space: carved/observed floor + walked path, small holes closed, walls removed."""
-    walls = G.wall & (G.count >= 8)
+def free_space(G, traj_cells, carved=None, min_rays=2, close_m=0.30, wall_count=8):
+    """Interior free space: carved/observed floor + walked path, small holes closed, walls removed.
+    `wall_count`: minimum points per cell for a wall cell (a number, or 'p70' = 70th percentile of
+    occupied cells, used for monocular-depth tiers whose walls are smeared over several cells)."""
+    if isinstance(wall_count, str):
+        wall_count = max(8.0, float(np.percentile(G.count[G.count > 0], float(wall_count[1:]))))
+    walls = G.wall & (G.count >= wall_count)
     seen = G.floor.copy()
     if carved is not None:
         seen |= carved >= min_rays

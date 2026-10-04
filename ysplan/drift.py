@@ -60,7 +60,8 @@ def make_chunks(cap, chunk_s=3.0, fps=60, min_tail_s=2.0):
 
 
 def _chunk_cloud(cap, a, b, step=6, voxel=0.04):
-    P, _ = fuse.fuse(cap, frame_ids=range(a, b, step), voxel=0.02, min_hits=2)
+    ids = [i for i in range(a, b) if i in cap.depths] if hasattr(cap, "depths") else range(a, b, step)
+    P, _ = fuse.fuse(cap, frame_ids=ids, voxel=0.02, min_hits=2)
     pc = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(P))
     pc = pc.voxel_down_sample(voxel)
     pc.estimate_normals(o3d.geometry.KDTreeSearchParamHybrid(radius=0.12, max_nn=30))

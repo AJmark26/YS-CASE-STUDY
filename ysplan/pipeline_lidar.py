@@ -7,12 +7,14 @@ from . import drift as drift_mod
 from . import fuse, grid, io_stray, layout, measure, openings, rooms
 
 
-def run(capture_dir, drift=True, step=4, log=print):
+def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar"):
+    """Geometry pipeline shared by all tiers. `cap` defaults to the LiDAR capture; the video tier
+    passes a VideoCapture whose depth maps come from scaled monocular depth."""
     t0 = time.time()
     timing = {}
-    cap = io_stray.load(capture_dir)
+    cap = io_stray.load(capture_dir) if cap is None else cap
     duration = float(cap.timestamps[-1] - cap.timestamps[0])
-    log(f"[lidar] {len(cap)} frames, {duration:.0f} s")
+    log(f"[{tier}] {len(cap)} frames, {duration:.0f} s")
     if drift:
         poses, valid, drift_rep = drift_mod.correct(cap, log=log)
     else:
@@ -21,20 +23,23 @@ def run(capture_dir, drift=True, step=4, log=print):
     drift_rep["enabled"] = bool(drift)
     timing["drift_s"] = time.time() - t0
     frames = np.where(valid)[0]
-    P, _ = fuse.fuse(cap, poses=poses, frame_ids=frames[::step])
+    if hasattr(cap, "depths"):                      # video tier: only keyframes carry depth
+        frames = np.array([f for f in frames if f in cap.depths])
+        step = 1
+    P, _ = fuse.fuse(cap, poses=poses, frame_ids=frames[::step], min_hits=2 if tier != "lidar" else 3)
     U, floor_y, yaw = grid.align(P)
     G = grid.build(U, floor_y, yaw, wall_span=0.4)
     timing["fuse_s"] = time.time() - t0 - timing["drift_s"]
-    carve_ids = frames[::5]
+    carve_ids = frames[::5] if tier == "lidar" else frames
     c_low = rooms.carve(G, cap, poses, carve_ids)
     c_mid = rooms.carve(G, cap, poses, carve_ids, end_h=(0.9, 1.9))
     t = poses[frames, :3, 3]
     c, s = np.cos(yaw), np.sin(yaw)
     traj = np.stack([t[:, 0] * c + t[:, 2] * s, -t[:, 0] * s + t[:, 2] * c], 1)
-    free, walls = rooms.free_space(G, G.to_cell(traj), c_low)
+    free, walls = rooms.free_space(G, G.to_cell(traj), c_low, wall_count=8 if tier == "lidar" else "p70")
     labels = rooms.segment(free & ~rooms.close_doors(walls))
     polys, _, _ = layout.room_polygons(U, G, labels)
-    log(f"[lidar] {len(polys)} rooms")
+    log(f"[{tier}] {len(polys)} rooms")
     sigma_drift = drift_rep.get("loop_misalignment_cm_after", 0.0) / 100.0 if drift else 0.0
     out_rooms, per_room_open = [], {}
     for k, poly in polys.items():
@@ -63,7 +68,7 @@ def run(capture_dir, drift=True, step=4, log=print):
     timing["total_s"] = time.time() - t0
     result = {
         "schema_version": "1.0",
-        "tier": "lidar",
+        "tier": tier,
         "units": "m",
         "frame": "gravity-aligned plan; x,y = Manhattan-aligned floor coordinates, origin arbitrary",
         "capture": {"path": str(capture_dir), "frames": int(len(cap)), "frames_used": int(valid.sum()),

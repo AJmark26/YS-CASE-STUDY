@@ -27,6 +27,8 @@ def fuse(cap, step=3, voxel=0.02, max_depth=4.0, min_conf=2, min_hits=3, poses=N
         P = backproject(cap, i, max_depth, min_conf, None if poses is None else poses[i])
         k = np.floor(P / voxel).astype(np.int64)
         keys.append(k); sums.append(P)
+    if not keys or sum(len(k) for k in keys) == 0:
+        return np.zeros((0, 3)), np.zeros(0, int)
     K = np.concatenate(keys); P = np.concatenate(sums)
     K -= K.min(0)
     span = K.max(0) + 1
