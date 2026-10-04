@@ -1,0 +1,293 @@
+{
+ "repeatability_lidar": {
+  "pairs": {
+   "1a8384c3f6~c7d28f72c6": {
+    "registration_fit": 0.817,
+    "rooms_compared": [
+     "R1",
+     "R2",
+     "R4",
+     "R5"
+    ],
+    "pass_rate": 0.3
+   },
+   "1a8384c3f6~c00a170fe1": {
+    "registration_fit": 0.868,
+    "rooms_compared": [
+     "R4",
+     "R5"
+    ],
+    "pass_rate": 0.5
+   },
+   "c7d28f72c6~c00a170fe1": {
+    "registration_fit": 0.992,
+    "rooms_compared": [
+     "R2",
+     "R4",
+     "R6"
+    ],
+    "pass_rate": 0.2
+   }
+  },
+  "walls": [
+   {
+    "length_ref": 0.5309,
+    "length_test": 0.5641,
+    "diff_cm": 3.32,
+    "diff_pct": 6.25,
+    "sigma_ref_cm": 1.27,
+    "sigma_test_cm": 0.96,
+    "room": "R1",
+    "pair": "1a8384c3f6_lidar~c7d28f72c6_lidar",
+    "pass": false
+   },
+   {
+    "length_ref": 0.8342,
+    "length_test": 0.7897,
+    "diff_cm": -4.45,
+    "diff_pct": -5.33,
+    "sigma_ref_cm": 2.34,
+    "sigma_test_cm": 1.45,
+    "room": "R2",
+    "pair": "1a8384c3f6_lidar~c7d28f72c6_lidar",
+    "pass": false
+   },
+   {
+    "length_ref": 2.1621,
+    "length_test": 2.2082,
+    "diff_cm": 4.61,
+    "diff_pct": 2.13,
+    "sigma_ref_cm": 2.6,
+    "sigma_test_cm": 1.41,
+    "room": "R2",
+    "pair": "1a8384c3f6_lidar~c7d28f72c6_lidar",
+    "pass": false
+   },
+   {
+    "length_ref": 1.0409,
+    "length_test": 1.075,
+    "diff_cm": 3.41,
+    "diff_pct": 3.28,
+    "sigma_ref_cm": 2.22,
+    "sigma_test_cm": 1.48,
+    "room": "R2",
+    "pair": "1a8384c3f6_lidar~c7d28f72c6_lidar",
+    "pass": false
+   },
+   {
+    "length_ref": 1.0622,
+    "length_test": 1.0844,
+    "diff_cm": 2.22,
+    "diff_pct": 2.09,
+    "sigma_ref_cm": 1.14,
+    "sigma_test_cm": 1.39,
+    "room": "R2",
+    "pair": "1a8384c3f6_lidar~c7d28f72c6_lidar",
+    "pass": false
+   },
+   {
+    "length_ref": 2.6856,
+    "length_test": 2.718,
+    "diff_cm": 3.24,
+    "diff_pct": 1.21,
+    "sigma_ref_cm": 2.16,
+    "sigma_test_cm": 1.48,
+    "room": "R2",
+    "pair": "1a8384c3f6_lidar~c7d28f72c6_lidar",
+    "pass": false
+   },
+   {
+    "length_ref": 1.1328,
+    "length_test": 1.1398,
+    "diff_cm": 0.7,
+    "diff_pct": 0.62,
+    "sigma_ref_cm": 0.91,
+    "sigma_test_cm": 0.91,
+    "room": "R2",
+    "pair": "1a8384c3f6_lidar~c7d28f72c6_lidar",
+    "pass": true
+   },
+   {
+    "length_ref": 3.9325,
+    "length_test": 3.9234,
+    "diff_cm": -0.91,
+    "diff_pct": -0.23,
+    "sigma_ref_cm": 1.28,
+    "sigma_test_cm": 0.91,
+    "room": "R2",
+    "pair": "1a8384c3f6_lidar~c7d28f72c6_lidar",
+    "pass": true
+   },
+   {
+    "length_ref": 0.7504,
+    "length_test": 0.8066,
+    "diff_cm": 5.62,
+    "diff_pct": 7.49,
+    "sigma_ref_cm": 3.75,
+    "sigma_test_cm": 1.73,
+    "room": "R4",
+    "pair": "1a8384c3f6_lidar~c7d28f72c6_lidar",
+    "pass": false
+   },
+   {
+    "length_ref": 2.7732,
+    "length_test": 2.7871,
+    "diff_cm": 1.39,
+    "diff_pct": 0.5,
+    "sigma_ref_cm": 0.95,
+    "sigma_test_cm": 1.78,
+    "room": "R4",
+    "pair": "1a8384c3f6_lidar~c7d28f72c6_lidar",
+    "pass": true
+   },
+   {
+    "length_ref": 2.7732,
+    "length_test": 2.7632,
+    "diff_cm": -1.0,
+    "diff_pct": -0.36,
+    "sigma_ref_cm": 0.95,
+    "sigma_test_cm": 1.39,
+    "room": "R4",
+    "pair": "1a8384c3f6_lidar~c00a170fe1_lidar",
+    "pass": true
+   },
+   {
+    "length_ref": 1.2576,
+    "length_test": 1.2894,
+    "diff_cm": 3.18,
+    "diff_pct": 2.53,
+    "sigma_ref_cm": 0.97,
+    "sigma_test_cm": 1.28,
+    "room": "R5",
+    "pair": "1a8384c3f6_lidar~c00a170fe1_lidar",
+    "pass": false
+   },
+   {
+    "length_ref": 1.8109,
+    "length_test": 1.78,
+    "diff_cm": -3.09,
+    "diff_pct": -1.71,
+    "sigma_ref_cm": 1.34,
+    "sigma_test_cm": 1.16,
+    "room": "R5",
+    "pair": "1a8384c3f6_lidar~c00a170fe1_lidar",
+    "pass": false
+   },
+   {
+    "length_ref": 1.6477,
+    "length_test": 1.6531,
+    "diff_cm": 0.54,
+    "diff_pct": 0.33,
+    "sigma_ref_cm": 3.03,
+    "sigma_test_cm": 1.06,
+    "room": "R5",
+    "pair": "1a8384c3f6_lidar~c00a170fe1_lidar",
+    "pass": true
+   },
+   {
+    "length_ref": 2.107,
+    "length_test": 2.12,
+    "diff_cm": 1.3,
+    "diff_pct": 0.62,
+    "sigma_ref_cm": 1.44,
+    "sigma_test_cm": 1.82,
+    "room": "R4",
+    "pair": "c7d28f72c6_lidar~c00a170fe1_lidar",
+    "pass": false
+   },
+   {
+    "length_ref": 1.1901,
+    "length_test": 1.2157,
+    "diff_cm": 2.56,
+    "diff_pct": 2.15,
+    "sigma_ref_cm": 3.45,
+    "sigma_test_cm": 3.21,
+    "room": "R4",
+    "pair": "c7d28f72c6_lidar~c00a170fe1_lidar",
+    "pass": false
+   },
+   {
+    "length_ref": 0.7523,
+    "length_test": 0.7219,
+    "diff_cm": -3.04,
+    "diff_pct": -4.04,
+    "sigma_ref_cm": 3.65,
+    "sigma_test_cm": 4.25,
+    "room": "R4",
+    "pair": "c7d28f72c6_lidar~c00a170fe1_lidar",
+    "pass": false
+   },
+   {
+    "length_ref": 0.7656,
+    "length_test": 0.7549,
+    "diff_cm": -1.07,
+    "diff_pct": -1.4,
+    "sigma_ref_cm": 2.44,
+    "sigma_test_cm": 1.08,
+    "room": "R4",
+    "pair": "c7d28f72c6_lidar~c00a170fe1_lidar",
+    "pass": false
+   },
+   {
+    "length_ref": 1.4724,
+    "length_test": 1.4644,
+    "diff_cm": -0.8,
+    "diff_pct": -0.54,
+    "sigma_ref_cm": 2.55,
+    "sigma_test_cm": 2.38,
+    "room": "R6",
+    "pair": "c7d28f72c6_lidar~c00a170fe1_lidar",
+    "pass": true
+   }
+  ],
+  "n_walls": 19,
+  "pass_rate": 0.316,
+  "median_abs_diff_cm": 2.56
+ },
+ "video_vs_lidar_c00a170fe1": {
+  "rooms_found": 0,
+  "rooms_reference": 2,
+  "pass_rate": 0.0,
+  "note": "no rooms recovered"
+ },
+ "drift_ablation": {
+  "1a8384c3f6_lidar": {
+   "footprint_m2": 51.0697,
+   "rooms": 6,
+   "drift": {
+    "chunks": 29,
+    "loops_accepted": 8,
+    "loops_rejected": 1,
+    "pose_jumps": [
+     5199,
+     5200
+    ],
+    "frames_dropped": 52,
+    "loop_misalignment_cm_before": 16.392069451685433,
+    "loop_misalignment_cm_after": 2.2645199410226713,
+    "max_correction_m": 0.5086136310418832,
+    "mean_correction_m": 0.22454867171429854,
+    "enabled": true
+   },
+   "timing_s": {
+    "drift_s": 13.7,
+    "fuse_s": 28.9,
+    "layout_s": 19.7,
+    "total_s": 62.4
+   }
+  },
+  "1a8384c3f6_lidar_nodrift": {
+   "footprint_m2": 47.1411,
+   "rooms": 5,
+   "drift": {
+    "enabled": false
+   },
+   "timing_s": {
+    "drift_s": 0.1,
+    "fuse_s": 26.2,
+    "layout_s": 17.9,
+    "total_s": 44.2
+   }
+  }
+ }
+}
