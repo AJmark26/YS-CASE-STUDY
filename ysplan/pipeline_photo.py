@@ -272,7 +272,19 @@ def widen(result, scale_sigma=SCALE_SIGMA):
     for o in result["openings"]:
         W = o["width_m"]
         o["width_m"] = measure._val(W["value"], float(np.hypot(np.hypot(W["sigma"], 0.03), scale_sigma * W["value"])))
-    fp = sum(r["floor_area_m2"]["value"] for r in result["rooms"])
+    # stitched rooms can overlap when the joint pass falls back to per-room outlines; the
+    # footprint counts each piece of floor once, and the plan says which rooms overlap
+    from shapely.ops import unary_union
+    polys = [Polygon(r["polygon"]).buffer(0) for r in result["rooms"]]
+    double = sum(q.area for q in polys) - (float(unary_union(polys).area) if polys else 0.0)
+    fp = sum(r["floor_area_m2"]["value"] for r in result["rooms"]) - max(0.0, double)
+    notes = result.setdefault("capture", {}).setdefault("notes", [])
+    for i in range(len(polys)):
+        for j in range(i + 1, len(polys)):
+            a = polys[i].intersection(polys[j]).area
+            if a > 0.1:
+                notes.append(f"rooms {result['rooms'][i]['id']} and {result['rooms'][j]['id']} overlap by "
+                             f"{a:.2f} m2 in the stitched plan; the footprint counts that floor once")
     result["footprint_m2"] = measure._val(fp, float(np.sqrt(sum(r["floor_area_m2"]["sigma"] ** 2 for r in result["rooms"]))))
     return result
 
