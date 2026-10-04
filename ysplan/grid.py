@@ -6,14 +6,40 @@ import numpy as np
 RES = 0.02  # metres per grid cell
 
 
-def floor_height(P):
-    """Floor = densest horizontal slab among the lowest points (y is up)."""
+def floor_height(P, cam_y=None, min_drop=1.1, min_area_m2=2.0, typical_drop=1.4):
+    """Floor height (y is up). Returns (floor_y, observed).
+
+    With camera heights: the floor is the lowest horizontal surface that covers a real area
+    (at least 30% of the best-covered 1 cm slab, counted in 5 cm cells so a spot the camera
+    stared at does not outweigh a large surface seen briefly) and lies at least `min_drop`
+    below the median camera height, since the phone is carried at chest height or higher. A bed
+    or a table top can cover more area than the visible floor, which is why the lowest such
+    surface wins, not the largest. If nothing qualifies, the floor was not seen: the result is
+    `typical_drop` below the camera and `observed` is False, so heights are not reported.
+
+    Without camera heights: the densest slab among the lowest 30% of points.
+    """
     y = P[:, 1]
-    lo = y[y < np.percentile(y, 30)]
-    h, e = np.histogram(lo, bins=np.arange(lo.min(), lo.max() + 0.01, 0.01))
-    k = np.argmax(h)
-    sel = lo[(lo > e[k] - 0.03) & (lo < e[k] + 0.04)]
-    return float(np.median(sel))
+    if cam_y is None:
+        lo = y[y < np.percentile(y, 30)]
+        h, e = np.histogram(lo, bins=np.arange(lo.min(), lo.max() + 0.01, 0.01))
+        k = np.argmax(h)
+        sel = lo[(lo > e[k] - 0.03) & (lo < e[k] + 0.04)]
+        return float(np.median(sel)), True
+    cam = float(np.median(cam_y))
+    C = P[y < cam - min_drop]
+    if len(C):
+        cells = np.unique(np.c_[np.floor(C[:, 0] / 0.05), np.floor(C[:, 2] / 0.05),
+                                np.floor(C[:, 1] / 0.01)].astype(np.int64), axis=0)
+        b0 = cells[:, 2].min()
+        cover = np.convolve(np.bincount(cells[:, 2] - b0), np.ones(3), "same")   # a floor spans 2-3 bins
+        if cover.max() * 0.0025 / 3 >= min_area_m2:
+            j = int(np.where(cover >= 0.3 * cover.max())[0].min())
+            while j + 1 < len(cover) and cover[j + 1] >= cover[j]:
+                j += 1
+            h0 = (b0 + j + 0.5) * 0.01
+            return float(np.median(C[np.abs(C[:, 1] - h0) < 0.03, 1])), True
+    return cam - typical_drop, False
 
 
 def manhattan_angle(xz, step_deg=0.1):
@@ -52,9 +78,11 @@ class Grids:
         return np.asarray(ij) * RES + self.origin + RES / 2
 
 
-def align(P, floor_y=None, yaw=None):
-    """Return aligned points U (u, h, v): h = height above floor, (u,v) Manhattan-aligned plan coords."""
-    floor_y = floor_height(P) if floor_y is None else floor_y
+def align(P, floor_y=None, yaw=None, cam_y=None):
+    """Return aligned points U (u, h, v): h = height above floor, (u,v) Manhattan-aligned plan coords.
+    Pass camera heights (`cam_y`) to find the floor robustly; see floor_height."""
+    if floor_y is None:
+        floor_y, align.floor_observed = floor_height(P, cam_y)
     h = P[:, 1] - floor_y
     if yaw is None:
         band = (h > 0.5) & (h < 2.0)
