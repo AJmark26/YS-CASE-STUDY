@@ -114,7 +114,7 @@ Every `plan.json` validates against [docs/plan.schema.json](docs/plan.schema.jso
 
 1. **Load** the Stray Scanner capture (`ysplan/io_stray.py`): ARKit poses, depth with
    confidence, and intrinsics rescaled to the depth map.
-2. **Drift correction** (`ysplan/drift.py`): the capture is split into 3 s chunks. Each chunk is
+2. **Drift correction** (`ysplan/drift.py`): the capture is split into 4 s chunks. Each chunk is
    fused into a local cloud, and overlapping chunks are registered with yaw-only point-to-plane
    ICP (gravity from ARKit is trusted). A pose graph is then optimised over odometry and loop
    edges. Relocalisation jumps in ARKit are detected, and the unreliable tail after them is dropped.

@@ -7,9 +7,10 @@ from . import drift as drift_mod
 from . import fuse, grid, io_stray, layout, measure, openings, rooms
 
 
-def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high_rays=True):
+def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high_rays=True, tier_scale=1.0):
     """Geometry pipeline shared by all tiers. `cap` defaults to the LiDAR capture; the video tier
-    passes a VideoCapture whose depth maps come from scaled monocular depth."""
+    passes a VideoCapture whose depth maps come from predicted depth. `tier_scale` multiplies
+    every wall and ceiling sigma (1 for LiDAR; set per tier from its benchmark against LiDAR)."""
     t0 = time.time()
     timing = {}
     cap = io_stray.load(capture_dir) if cap is None else cap
@@ -65,7 +66,7 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high
     for k, poly in polys.items():
         rid = f"R{k}"
         yaw_r = measure.room_yaw(U, poly)          # residual drift can leave a room slightly turned
-        wl = measure.walls(U, poly, sigma_drift=sigma_drift, yaw=yaw_r)
+        wl = measure.walls(U, poly, sigma_drift=sigma_drift, tier_scale=tier_scale, yaw=yaw_r)
         lp = poly.representative_point()
         out_rooms.append({
             "id": rid,
@@ -73,7 +74,7 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high
             "label_point": [lp.x, lp.y],
             "walls": [dict(w, id=f"{rid}-W{i + 1}") for i, w in enumerate(wl)],
             "floor_area_m2": measure.area(poly, wl),
-            "ceiling_height_m": measure.ceiling(U, poly, floor_observed=floor_seen),
+            "ceiling_height_m": measure.ceiling(U, poly, tier_scale=tier_scale, floor_observed=floor_seen),
             "bbox_m": [round(poly.bounds[2] - poly.bounds[0], 3), round(poly.bounds[3] - poly.bounds[1], 3)],
             "wall_observed_fraction": round(float(np.mean([w["observed_fraction"] for w in wl])), 3),
             "squared_by_deg": round(float(np.degrees(yaw_r)), 2),
@@ -88,6 +89,7 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high
     result = {
         "schema_version": "1.0",
         "tier": tier,
+        "interval_scale": float(tier_scale),
         "units": "m",
         "frame": "gravity-aligned plan; x,y = Manhattan-aligned floor coordinates, origin arbitrary",
         "alignment": {"yaw_rad": float(yaw), "floor_y_world": float(floor_y), "floor_observed": bool(floor_seen),

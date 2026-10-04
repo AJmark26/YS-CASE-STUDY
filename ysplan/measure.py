@@ -7,8 +7,10 @@ Error model (LiDAR tier), per wall face position:
   - sigma_sensor: 0.5 cm residual LiDAR range bias (literature for iPhone LiDAR at < 3 m)
   - sigma_drift: residual loop misalignment after drift correction, split across both faces
 A wall length is the distance between its two bounding faces, so sigma_len^2 = sa^2 + sb^2.
-Unobserved faces (no supporting points) get sigma = 10 cm. The `tier_scale` factor widens
-everything for thinner inputs and is calibrated on the benchmark (see calibrate.py).
+Unobserved faces (no supporting points) get sigma = 10 cm. The `tier_scale` factor multiplies
+wall and ceiling sigmas for tiers whose depth is predicted rather than sensed: 1 for LiDAR,
+and for the video and photo tiers the value their benchmark against LiDAR calibrates
+(written to plan.json as `interval_scale`).
 """
 import numpy as np
 

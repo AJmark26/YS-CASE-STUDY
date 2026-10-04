@@ -8,7 +8,9 @@ Run B is placed in run A's plan frame (90 deg rotations plus translation, refine
 Both runs' fused clouds are then measured with the pipeline's own measure.walls() on run A's
 room outline. This tests the measurement, not whether two runs split the space into rooms the
 same way; that is reported separately as room-split agreement (IoU of the best-matching room).
-Walls whose length is bounded by an unseen wall are skipped.
+Walls whose length is bounded by an unseen wall are skipped. Each run's walls get the same
+interval terms the pipeline gave them (its drift term and tier scale), so the calibration
+check tests the intervals plan.json reports.
 Writes bench/benchmark.json.
 """
 import json
@@ -33,6 +35,12 @@ def load(out):
     xy = np.load(out / "wall_points_plan.npz")["xy"]
     U = np.load(out / "points_plan_frame.npz")["U"].astype(np.float64)
     return plan, xy, U
+
+
+def _sigma_drift(plan):
+    """The drift term the pipeline put in this run's wall intervals (pipeline_lidar.run)."""
+    d = plan.get("drift") or {}
+    return d.get("loop_misalignment_cm_after", 0.0) / 100.0 if d.get("enabled") else 0.0
 
 
 def _moveU(U, T):
@@ -65,7 +73,8 @@ def compare_runs(dir_a, dir_b, min_cover=0.6, min_len=0.5, min_obs=0.3, same_cap
         near_a = contains_xy(pa.buffer(0.6), UA[:, 0], UA[:, 2])
         UBr = _moveU(UB, Tl @ T)
         near_b = contains_xy(pa.buffer(0.6), UBr[:, 0], UBr[:, 2])
-        wa, wb = measure.walls(UA[near_a], pa), measure.walls(UBr[near_b], pa)
+        wa = measure.walls(UA[near_a], pa, sigma_drift=_sigma_drift(A), tier_scale=A.get("interval_scale", 1.0))
+        wb = measure.walls(UBr[near_b], pa, sigma_drift=_sigma_drift(B), tier_scale=B.get("interval_scale", 1.0))
         rooms.append({"room": ra["id"], "split_iou": round(iou, 3),
                       "shift_cm": [round(Tl[0, 2] * 100, 1), round(Tl[1, 2] * 100, 1)]})
         for k, (a, b) in enumerate(zip(wa, wb)):

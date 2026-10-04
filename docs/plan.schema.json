@@ -27,6 +27,10 @@
     "units": {
       "const": "m"
     },
+    "interval_scale": {
+      "type": "number",
+      "description": "factor on every wall and ceiling sigma for this tier: 1 for LiDAR, calibrated against LiDAR for video and photo"
+    },
     "frame": {
       "type": "string"
     },

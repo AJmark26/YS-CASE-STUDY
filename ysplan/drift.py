@@ -40,10 +40,20 @@ def find_jumps(cap, factor=6.0):
     return [i + 1 for i in np.where(sp > thr)[0]]
 
 
-def make_chunks(cap, chunk_s=3.0, fps=60, min_tail_s=2.0):
+def frame_rate(cap, default=60.0):
+    """Mean frame rate from the timestamps. Stray Scanner records at up to 60 fps but the
+    sample captures average about 46 fps, so durations are not frame counts / 60."""
+    t = np.asarray(cap.timestamps, dtype=float)
+    if len(t) > 1 and t[-1] > t[0]:
+        return (len(t) - 1) / float(t[-1] - t[0])
+    return default
+
+
+def make_chunks(cap, chunk_s=4.0, min_tail_s=2.0):
     """Chunk boundaries. Frames after a pose jump that ends less than `min_tail_s` before the
     end of the capture are dropped: too few frames to register, and ARKit has just relocalised."""
     n = len(cap)
+    fps = frame_rate(cap)
     jumps = find_jumps(cap)
     if jumps and n - jumps[-1] < min_tail_s * fps:
         n = jumps[0] if jumps[-1] - jumps[0] < fps else jumps[-1]
@@ -80,7 +90,7 @@ def _icp(src, dst, max_dist=0.10):
     return T, ev.fitness, ev.inlier_rmse, info
 
 
-def correct(cap, chunk_s=3.0, min_overlap=0.3, min_fitness=0.35, max_rmse=0.03, odo_info=100.0, log=print):
+def correct(cap, chunk_s=4.0, min_overlap=0.3, min_fitness=0.35, max_rmse=0.03, odo_info=100.0, log=print):
     """Return (corrected poses (N,4,4), valid frame mask (N,), report dict)."""
     chunks = make_chunks(cap, chunk_s)
     jumps = set(find_jumps(cap))
