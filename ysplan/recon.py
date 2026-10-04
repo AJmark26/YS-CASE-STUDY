@@ -66,6 +66,22 @@ def single_view_depth(path):
     return d, np.isfinite(d) & (o["mask"].numpy() > 0)
 
 
+def single_view_depth_array(rgb, K, out_hw):
+    """MoGe-2 metric depth for an RGB array whose intrinsics K are known at out_hw resolution
+    (as returned by MapAnything); returns (depth, mask) resized to out_hw."""
+    import cv2
+    import torch
+    h, w = out_hw
+    fov_x = float(np.degrees(2 * np.arctan(w / 2 / K[0, 0])))
+    x = torch.tensor(rgb / 255.0, dtype=torch.float32).permute(2, 0, 1)
+    with torch.no_grad():
+        o = moge().infer(x, fov_x=fov_x, use_fp16=False, resolution_level=7)
+    d = np.where(o["mask"].numpy() > 0, o["depth"].numpy(), 0).astype(np.float32)
+    d[~np.isfinite(d)] = 0
+    d = cv2.resize(d, (w, h), interpolation=cv2.INTER_NEAREST)
+    return d, d > 0
+
+
 def exif_intrinsics(path):
     """Pinhole K at full image resolution from EXIF FocalLengthIn35mmFilm (35 mm-equivalent focal
     length is defined against the 43.27 mm full-frame diagonal). Principal point at the centre.
@@ -98,7 +114,7 @@ def reconstruct(paths, poses=None, log=print):
         views.append(v)
     views = preprocess_inputs(views)
     with torch.no_grad():
-        preds = model().infer(views, memory_efficient_inference=False, use_amp=False,
+        preds = model().infer(views, memory_efficient_inference=True, use_amp=False,
                               apply_mask=True, mask_edges=True)
     out = []
     for p in preds:

@@ -32,6 +32,7 @@ class VideoCapture:
     K_rgb: np.ndarray
     depths: dict = field(default_factory=dict)
     stats: dict = field(default_factory=dict)
+    rgb_size: tuple = (io_stray.RGB_W, io_stray.RGB_H)   # the video's own size, from the loader
 
     def __len__(self):
         return len(self.frames)
@@ -45,8 +46,8 @@ class VideoCapture:
     def K_depth(self, i, shape):
         h, w = shape
         K = self.K_rgb[i].copy()
-        K[0] *= w / io_stray.RGB_W
-        K[1] *= h / io_stray.RGB_H
+        K[0] *= w / self.rgb_size[0]
+        K[1] *= h / self.rgb_size[1]
         return K
 
 
@@ -80,7 +81,8 @@ def estimate_time_offset(cap, fr, kfs, chain_step, offsets=np.arange(-2, 3.01, 0
         cnt = 0
         for k in sample:
             K = cap.K_rgb[k].copy()
-            K[:2] *= W / io_stray.RGB_W
+            K[0] *= W / cap.rgb_size[0]
+            K[1] *= H / cap.rgb_size[1]
             for last, p0, p1 in tr[k]:
                 cnt += len(mono.triangulate(p0, p1, K, T[k], T[last])[1])
         scores.append(cnt)
@@ -114,8 +116,8 @@ def mapanything_depths(cap, T, kfs, video, window=8, log=print):
             m = p["mask"][0, ..., 0].numpy().reshape(-1).astype(bool) & (X[:, 2] > 0.1)
             X = X[m]
             K = cap.K_rgb[i].copy()
-            K[0] *= DW / io_stray.RGB_W
-            K[1] *= DH / io_stray.RGB_H
+            K[0] *= DW / cap.rgb_size[0]
+            K[1] *= DH / cap.rgb_size[1]
             u = np.round(X[:, 0] / X[:, 2] * K[0, 0] + K[0, 2]).astype(int)
             v = np.round(X[:, 1] / X[:, 2] * K[1, 1] + K[1, 2]).astype(int)
             ok = (u >= 0) & (u < DW) & (v >= 0) & (v < DH)
@@ -154,7 +156,7 @@ def build(capture_dir, kf_step=None, chain_step=3, max_res=0.10, min_pts=20, log
     log(f"[video] video-to-pose time offset {offset:+.1f} frames (track inliers {scores})")
     T = shifted_poses(cap.T_wc, offset)
     cap.T_wc = T
-    vc = VideoCapture(cap.root, cap.frames, cap.timestamps, T, cap.K_rgb)
+    vc = VideoCapture(cap.root, cap.frames, cap.timestamps, T, cap.K_rgb, rgb_size=tuple(cap.rgb_size))
     if depth == "mapanything":
         t0 = time.time()
         if cache is not None and Path(cache).exists():
@@ -177,7 +179,8 @@ def build(capture_dir, kf_step=None, chain_step=3, max_res=0.10, min_pts=20, log
         ids = [i for i in range(k, k + 31, chain_step) if i in fr]
         grays = [cv2.cvtColor(fr[i], cv2.COLOR_BGR2GRAY) for i in ids]
         K = cap.K_rgb[k].copy()
-        K[:2] *= W / io_stray.RGB_W
+        K[0] *= W / cap.rgb_size[0]
+        K[1] *= H / cap.rgb_size[1]
         best = (np.zeros((0, 2)), np.zeros(0))
         for L in (4, 6, 8, len(ids)):
             p0, p1 = mono.track_chain(grays[:L])
@@ -189,8 +192,8 @@ def build(capture_dir, kf_step=None, chain_step=3, max_res=0.10, min_pts=20, log
         disps.append(disp)
         sparse.append((uv * [DW / W, DH / H], dep))
         Kd = cap.K_rgb[k].copy()
-        Kd[0] *= DW / io_stray.RGB_W
-        Kd[1] *= DH / io_stray.RGB_H
+        Kd[0] *= DW / cap.rgb_size[0]
+        Kd[1] *= DH / cap.rgb_size[1]
         Ks.append(Kd)
         npts.append(len(dep))
     for i, k in enumerate(kfs):
@@ -208,3 +211,107 @@ def build(capture_dir, kf_step=None, chain_step=3, max_res=0.10, min_pts=20, log
                 "median_triangulated_points": float(np.median(npts)) if npts else 0}
     log(f"[video] {ok_n}/{len(kfs)} keyframes kept, median fit residual {vc.stats['median_fit_residual']}")
     return vc
+
+
+def build_posefree(video, kf_hz=1.5, window=8, overlap=2, moge_per_window=2, log=print):
+    """Video tier without ARKit poses (any phone's camera app): keyframes go through MapAnything
+    in overlapping windows with no pose input. Each window is made metric on its own with MoGe-2
+    (median depth ratio on `moge_per_window` of its keyframes), so scale errors do not compound
+    along the walk, then chained rigidly onto the previous window through a shared keyframe.
+    The floor plane sets gravity. Returns a pipeline_photo.PhotoCapture over the keyframes plus
+    stats. No loop closure: drift along a long walk stays in the result.
+
+    EXPERIMENTAL: on the single_room clip the chained windows disagree in yaw and the walls
+    smear, so no room is recovered yet (a single shared keyframe is too weak a link). Results
+    are flagged `experimental` in plan.json."""
+    import gc
+    import resource
+    import torch
+    from mapanything.utils.image import preprocess_inputs
+    from . import pipeline_photo as pp
+    from . import recon
+    video = Path(video)
+    vcap = cv2.VideoCapture(str(video))
+    fps = vcap.get(cv2.CAP_PROP_FPS) or 30.0
+    n = int(vcap.get(cv2.CAP_PROP_FRAME_COUNT))
+    w0_, h0_ = vcap.get(cv2.CAP_PROP_FRAME_WIDTH), vcap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    vcap.release()
+    f = 960 / max(w0_, h0_)                        # MapAnything works at 518 px anyway
+    size = (int(round(w0_ * f)), int(round(h0_ * f)))
+    step = max(1, int(round(fps / kf_hz)))
+    fr = mono.read_frames(video, range(0, n, step), size)
+    kfs = sorted(fr)
+    log(f"[video] no poses: {len(kfs)} keyframes at {kf_hz} Hz, windows of {window}")
+    T_glob, D_glob, M_glob, K_glob, scales = {}, {}, {}, {}, []
+    t0 = time.time()
+    starts = list(range(0, max(1, len(kfs) - overlap), window - overlap))
+    for wi, w0 in enumerate(starts):
+        ids = kfs[w0:w0 + window]
+        if len(ids) < 2:
+            break
+        views = [{"img": torch.from_numpy(cv2.cvtColor(fr[i], cv2.COLOR_BGR2RGB))} for i in ids]
+        with torch.no_grad():
+            preds = recon.model().infer(preprocess_inputs(views), memory_efficient_inference=True,
+                                        use_amp=False, apply_mask=True, mask_edges=True)
+        P = {i: p["camera_poses"][0].numpy().astype(np.float64) for i, p in zip(ids, preds)}
+        D = {i: p["depth_z"][0, ..., 0].numpy().copy() for i, p in zip(ids, preds)}
+        M = {i: p["mask"][0, ..., 0].numpy().astype(bool) for i, p in zip(ids, preds)}
+        K = {i: p["intrinsics"][0].numpy().astype(np.float64) for i, p in zip(ids, preds)}
+        del preds, views
+        gc.collect()
+        new = [i for i in ids if i not in T_glob] or ids
+        ratios = []
+        for i in new[:: max(1, len(new) // moge_per_window)][:moge_per_window]:
+            dm, mm = recon.single_view_depth_array(cv2.cvtColor(fr[i], cv2.COLOR_BGR2RGB), K[i], D[i].shape)
+            ok = M[i] & mm & (dm > 0.2) & (D[i] > 0.05)
+            if ok.sum() > 500:
+                ratios.append(float(np.median(dm[ok] / D[i][ok])))
+        s = float(np.median(ratios)) if ratios else (scales[-1] if scales else 1.0)
+        scales.append(s)
+        shared = [i for i in ids if i in T_glob]
+        A = T_glob[shared[0]] @ np.linalg.inv(_scaled(P[shared[0]], s)) if shared else np.eye(4)
+        for i in ids:
+            if i in T_glob:
+                continue
+            T_glob[i] = A @ _scaled(P[i], s)
+            D_glob[i], M_glob[i], K_glob[i] = D[i] * s, M[i], K[i]
+        log(f"[video] window {wi + 1}/{len(starts)}: metric scale {s:.3f}, "
+            f"peak memory {resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1e6:.1f} GB")
+    order = sorted(T_glob)
+    T = np.array([T_glob[i] for i in order])
+    pc = pp.PhotoCapture(video.parent, T, np.array([K_glob[i] for i in order]),
+                         {j: D_glob[i] for j, i in enumerate(order)},
+                         {j: M_glob[i] for j, i in enumerate(order)}, [f"frame_{i:06d}" for i in order],
+                         min_inside=max(1, int(2 * kf_hz)))
+    # gravity: the floor is a large plane 0.5-2.2 m below the cameras. The clip may be stored
+    # sideways (no rotation metadata), so each image axis is tried as 'up'.
+    from . import fuse
+    Pts, _ = fuse.fuse(pc, step=1, max_depth=pp.MAX_DEPTH, min_hits=1)
+    best = None
+    for ax, sgn in ((1, -1), (1, 1), (0, -1), (0, 1)):
+        cand = sgn * T[:, :3, ax].mean(0)
+        cand /= np.linalg.norm(cand)
+        nrm, off, cnt = pp.floor_plane(Pts, cand, max_angle_deg=25, return_count=True)
+        if off is None:
+            continue
+        below = T[:, :3, 3] @ nrm - off
+        if np.median(below) < 0.5 or np.median(below) > 2.2:
+            continue
+        if best is None or cnt > best[1]:
+            best = (nrm, cnt)
+    up_floor = best[0] if best else -T[0, :3, 1]
+    G = np.eye(4)
+    G[:3, :3] = pp.rotation_to_y(up_floor)
+    pc.T_wc = G @ pc.T_wc
+    log("[video] WARNING: pose-free video is experimental; check the plan before trusting it")
+    stats = {"depth_source": "mapanything_posefree", "experimental": True, "keyframes": len(order), "kf_hz": kf_hz,
+             "window_scales": [round(x, 3) for x in scales],
+             "scale_spread_rel": round(float(np.std(scales) / np.mean(scales)), 4) if scales else None,
+             "gravity_found": best is not None, "depth_s": round(time.time() - t0, 1)}
+    return pc, stats
+
+
+def _scaled(T, s):
+    out = T.copy()
+    out[:3, 3] *= s
+    return out

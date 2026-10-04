@@ -13,7 +13,7 @@ def detect_tier(p: Path):
         return "lidar" if (p / "depth").is_dir() else "video"
     if p.is_file() and p.suffix.lower() in (".mp4", ".mov"):
         return "video"
-    if p.is_dir() and any(p.glob("*.mp4")) or any(p.glob("*.MOV")):
+    if p.is_dir() and (any(p.glob("*.mp4")) or any(p.glob("*.MOV")) or any(p.glob("*.mov"))):
         return "video"
     return "photo"
 
@@ -62,7 +62,10 @@ def main(argv=None):
     out.mkdir(parents=True, exist_ok=True)
     if tier in ("lidar", "video"):
         from . import io_stray
-        a.capture = io_stray.resolve(a.capture)              # accepts the .zip or a parent folder
+        plain_clip = tier == "video" and (a.capture.is_file() and a.capture.suffix.lower() != ".zip" or
+                                          a.capture.is_dir() and not any(a.capture.rglob("odometry.csv")))
+        if not plain_clip:                                   # a plain video file has no Stray folder
+            a.capture = io_stray.resolve(a.capture)          # accepts the .zip or a parent folder
     if tier == "lidar":
         from . import pipeline_lidar
         result, cloud, U = pipeline_lidar.run(a.capture, drift=not a.no_drift)
@@ -75,12 +78,20 @@ def main(argv=None):
         np.save(out / "poses_world.npy", pipeline_lidar.run.poses.astype(np.float32))   # drift-corrected camera->world
     elif tier == "video":
         from . import pipeline_lidar, pipeline_video
-        vc = pipeline_video.build(a.capture, depth=a.video_depth,
-                                  cache=None if a.no_cache else out / "video_depths.npz")
-        result, cloud, U = pipeline_lidar.run(a.capture, drift=not a.no_drift, cap=vc, tier="video")
+        if a.capture.is_dir() and (a.capture / "odometry.csv").exists():
+            vc = pipeline_video.build(a.capture, depth=a.video_depth,
+                                      cache=None if a.no_cache else out / "video_depths.npz")
+            result, cloud, U = pipeline_lidar.run(a.capture, drift=not a.no_drift, cap=vc, tier="video")
+        else:                                   # plain clip from any camera app: no poses
+            clip = a.capture if a.capture.is_file() else sorted(
+                [*a.capture.glob("*.mp4"), *a.capture.glob("*.MOV"), *a.capture.glob("*.mov")])[0]
+            vc, stats = pipeline_video.build_posefree(clip)
+            vc.stats = stats
+            result, cloud, U = pipeline_lidar.run(clip, drift=False, cap=vc, tier="video")
         result["video"] = vc.stats
     else:
-        raise SystemExit(f"tier {tier} not implemented yet")
+        from . import pipeline_photo
+        result, cloud, U = pipeline_photo.run(a.capture, cache=None if a.no_cache else out / "photo_recon")
     result.setdefault("timing_s", {})["wall_clock_s"] = round(time.time() - t_start, 1)   # load to plan, damage included
     (out / "plan.json").write_text(json.dumps(result, indent=1))
     import numpy as np
