@@ -484,7 +484,9 @@ def run(capture_dir, log=print, cache=None, gap=1.0):
     polys = {n: Polygon(r["polygon"]) for n, (r, _, _) in own.items()}
     doors = {n: [(((o["from"] + o["to"]) / 2, o["line"]) if o["axis"] == "u" else (o["line"], (o["from"] + o["to"]) / 2),
                   o["axis"]) for o in r["openings"] if o["type"] in ("door", "opening")] for n, (r, _, _) in own.items()}
-    pose, links, unplaced, one_sided = stitch.place(polys, views, doors)
+    pose, links, unplaced, one_sided, rejected = stitch.place(polys, views, doors)
+    for rj in rejected:
+        log(f"[photo] doorway {'-'.join(rj['rooms'])} not used: {rj['reason']}")
     # rooms with no two-sided link go to the right of the stitched plan, side by side
     x0 = max((stitch.apply_poly(polys[n], *pose[n]).bounds[2] for n in pose), default=-gap) + gap
     for n in sorted(unplaced, key=lambda n: -polys[n].area):
@@ -498,7 +500,8 @@ def run(capture_dir, log=print, cache=None, gap=1.0):
         result["photo"] = {"per_room": diags, "scale_sigma_rel": SCALE_SIGMA,
                            "stitched": not result.pop("_unstitched"), "links": links,
                            "unstitched_rooms": sorted(n for n in own if n not in linked),
-                           "one_sided_doorways": one_sided, "cameras": result.pop("_cameras")}
+                           "one_sided_doorways": one_sided, "rejected_doorways": rejected,
+                           "cameras": result.pop("_cameras")}
         result["timing_s"]["total_s"] = round(time.time() - t0, 1)
         _log_links(log, links, linked, own)
         return widen(result), cloud, U
@@ -533,6 +536,7 @@ def run(capture_dir, log=print, cache=None, gap=1.0):
               "photo": {"per_room": diags, "scale_sigma_rel": SCALE_SIGMA,
                         "stitched": bool(links) and not unstitched, "links": links,
                         "unstitched_rooms": unstitched, "one_sided_doorways": one_sided,
+                        "rejected_doorways": rejected,
                         "cameras": cameras},
               "timing_s": {"total_s": round(time.time() - t0, 1)}}
     cloud = np.concatenate(clouds) if clouds else np.zeros((0, 2))
@@ -546,7 +550,7 @@ def _log_links(log, links, linked, own):
             + ", ".join("-".join(l["rooms"]) for l in links))
     rest = sorted(n for n in own if n not in linked)
     if rest:
-        log(f"[photo] not stitched (no doorway photo from both sides): {', '.join(rest)}")
+        log(f"[photo] not stitched (no usable doorway photo from both sides): {', '.join(rest)}")
 
 
 def _merged_plan(capture_dir, frames, pose, own, links, log):

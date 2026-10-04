@@ -17,6 +17,16 @@ from shapely.affinity import rotate as sh_rotate, translate as sh_translate
 
 WALL = 0.12          # interior wall thickness assumed between the two faces of a door wall (m)
 MAX_BACK = 2.2       # the protocol stands at most 2 m back from a doorway
+MAX_OBLIQUE = 25.0   # deg: a doorway still further off its room's wall axes is not used. The snap to
+                     # the nearest axis flips at 45 deg; this leaves 20 deg for reconstruction error.
+                     # On the samples, as reconstructed, the stills behind correct links were 1-10
+                     # deg off, and the bedroom pair that linked at the wrong turn 30 and 35 deg.
+
+
+def oblique_deg(d):
+    """Angle (deg) between a plan direction and the nearest axis direction."""
+    d = np.asarray(d, float) / max(np.linalg.norm(d), 1e-9)
+    return float(np.degrees(np.arccos(np.clip(d @ snap_dir(d), -1, 1))))
 
 
 def snap_dir(d):
@@ -87,12 +97,18 @@ def place(rooms, door_views, doors=None):
     door wall or None), ...]}, in the frame of the room shown (the folder the photo is in).
     doors: {name: [(centre xy, axis)]} of detected door openings; a door anchor moves to the
     centre of one found on that wall.
-    Returns (pose, links, unplaced, one_sided): pose[name] = (k, t) maps the room's own frame to
+    Returns (pose, links, unplaced, one_sided, rejected): pose[name] = (k, t) maps the room's own frame to
     the plan, x_plan = R(90 deg * k) x + t."""
     anchors, snapped, measured = {}, {}, {}        # (a, b) -> (point, into b), in b's frame
+    rejected = {}                                  # room pair -> why its doorway stills were not used
     for b, views in door_views.items():
         for a, cam, d, dist in views:
             if b in rooms and a in rooms and (a, b) not in anchors:
+                off = oblique_deg(d)
+                if off > MAX_OBLIQUE:
+                    rejected.setdefault(tuple(sorted((a, b))), []).append(
+                        f"photo from {a} into {b} is {off:.0f} deg off the wall axes (limit {MAX_OBLIQUE:.0f})")
+                    continue
                 p, n, measured[(a, b)] = door_anchor(cam, d, dist)
                 p, snapped[(a, b)] = snap_to_door(p, n, (doors or {}).get(b))
                 anchors[(a, b)] = (p, n)
@@ -123,8 +139,10 @@ def place(rooms, door_views, doors=None):
                           "door_centres_used": int(snapped[(cur, other)]) + int(snapped[(other, cur)]),
                           "overlap_m2": round(float(overlap), 3)})
             frontier.append(other)
-    one_sided = sorted({tuple(sorted(k)) for k in anchors if k[::-1] not in anchors})
-    return pose, links, [r for r in rooms if r not in pose], [list(p) for p in one_sided]
+    rejected = {p: w for p, w in rejected.items() if p not in rel and p[::-1] not in rel}
+    one_sided = sorted({tuple(sorted(k)) for k in anchors if k[::-1] not in anchors} - set(rejected))
+    return (pose, links, [r for r in rooms if r not in pose], [list(p) for p in one_sided],
+            [{"rooms": list(p), "reason": "; ".join(w)} for p, w in sorted(rejected.items())])
 
 
 def apply_poly(poly, k, t):
