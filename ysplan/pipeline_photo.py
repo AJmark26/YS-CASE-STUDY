@@ -24,6 +24,7 @@ from . import fuse, grid, layout, measure, openings, recon, rooms, stitch
 SCALE_SIGMA = 0.05      # relative 1-sigma scale error of the learned depth; calibrated on the benchmark
 MAX_DEPTH = 6.0
 DOOR_SKIP_M = 1.2       # doorway stills are shot from up to 1 m outside the room they show
+MIN_ROOM_PHOTOS = 3     # fewer room photos than this are reconstructed together with the stills
 
 
 @dataclass
@@ -383,6 +384,61 @@ def load_capture(path, root):
     return pc, list(z["owner"]), json.loads(str(z["diag"]))
 
 
+def _cached_capture(paths, folder, cache, key, log):
+    """Reconstruction of these photos, from `cache`/<key>.npz when it holds exactly them."""
+    npz = Path(cache) / f"{key}.npz" if cache is not None else None
+    if npz is not None and npz.exists():
+        pc, _, diag = load_capture(npz, folder)
+        if [str(n) for n in pc.names] == [p.name for p in paths]:
+            return pc, diag
+        log(f"[photo] {npz.name} holds other photos; reconstructing again")
+    log(f"[photo] {folder.name}: {len(paths)} photos")
+    pc, diag = _capture_from(paths, folder, log=log)
+    if npz is not None:
+        npz.parent.mkdir(parents=True, exist_ok=True)
+        save_capture(npz, pc, [folder.name] * len(paths), diag)
+    return pc, diag
+
+
+def place_stills(pc, pc_all, min_spread=0.3):
+    """Doorway stills of `pc_all` (the room's photos plus its stills) moved into the frame of `pc`
+    (the room's photos alone), by the rotation, scale and shift that best map the shared photos'
+    cameras. Scale is taken from the cameras only when they spread at least `min_spread` metres;
+    both reconstructions are already metric (MoGe-2), so it is 1 otherwise.
+    Returns (PhotoCapture holding the stills, diagnostics)."""
+    names, alln = [str(n) for n in pc.names], [str(n) for n in pc_all.names]
+    a = np.array([names.index(n) for n in names if n in alln])
+    b = np.array([alln.index(names[i]) for i in a])
+    Ra, Rb = pc.T_wc[a, :3, :3], pc_all.T_wc[b, :3, :3]
+    u, _, vt = np.linalg.svd(np.einsum("kij,klj->il", Ra, Rb))          # sum of Ra Rb^T
+    R = u @ np.diag([1.0, 1.0, np.linalg.det(u @ vt)]) @ vt
+    ca, cb = pc.T_wc[a, :3, 3], pc_all.T_wc[b, :3, 3]
+    db = (cb - cb.mean(0)) @ R.T
+    spread = float(np.sqrt(np.mean(np.sum(db ** 2, 1))))
+    s = float(np.clip(np.sum((ca - ca.mean(0)) * db) / np.sum(db ** 2), 0.8, 1.25)) if spread >= min_spread else 1.0
+    t = ca.mean(0) - s * R @ cb.mean(0)
+    rms = float(np.sqrt(np.mean(np.sum((ca - (s * cb @ R.T + t)) ** 2, 1))))
+    rot = [float(np.degrees(np.arccos(np.clip((np.trace(Ra[k].T @ R @ Rb[k]) - 1) / 2, -1, 1)))) for k in range(len(a))]
+    ids = [i for i, n in enumerate(alln) if n.startswith("door-from-")]
+    T = np.array([pc_all.T_wc[i].copy() for i in ids])
+    for T_i in T:
+        T_i[:3, :3] = R @ T_i[:3, :3]
+        T_i[:3, 3] = s * R @ T_i[:3, 3] + t
+    st = PhotoCapture(pc.root, T, pc_all.K[ids], {j: pc_all.depths[i] * s for j, i in enumerate(ids)},
+                      {j: pc_all.masks[i] for j, i in enumerate(ids)}, [alln[i] for i in ids])
+    return st, {"photos": st.names, "scale": round(s, 4), "camera_rms_m": round(rms, 3),
+                "rotation_median_deg": round(float(np.median(rot)), 2)}
+
+
+def with_stills(pc, st):
+    """One PhotoCapture holding a room's photos followed by its placed doorway stills."""
+    n = len(pc)
+    return PhotoCapture(pc.root, np.concatenate([pc.T_wc, st.T_wc]), np.concatenate([pc.K, st.K]),
+                        {**pc.depths, **{n + i: d for i, d in st.depths.items()}},
+                        {**pc.masks, **{n + i: m for i, m in st.masks.items()}},
+                        [str(x) for x in pc.names] + [str(x) for x in st.names])
+
+
 def plan_xy(v, yaw):
     """World (X, *, Z) vectors -> plan (x, y): x = X cos + Z sin, y = -X sin + Z cos."""
     c, s = np.cos(yaw), np.sin(yaw)
@@ -449,16 +505,19 @@ def run(capture_dir, log=print, cache=None, gap=1.0):
     t0 = time.time()
     for f in folders:
         paths = recon.list_images(f)
-        npz = Path(cache) / f"{f.name}.npz" if cache is not None else None
-        if npz is not None and npz.exists():
-            pc, owner, diag = load_capture(npz, f)
-        else:
-            log(f"[photo] {f.name}: {len(paths)} photos")
-            pc, diag = _capture_from(paths, f, log=log)
-            owner = [f.name] * len(paths)
-            if npz is not None:
-                npz.parent.mkdir(parents=True, exist_ok=True)
-                save_capture(npz, pc, owner, diag)
+        # a doorway still in the room's own reconstruction pulls its geometry (apartment R3:
+        # 8.50 m2 without it, 4.80 m2 with it), so the room is measured from its own photos and
+        # the stills are placed by a second reconstruction (place_stills). Two room photos are
+        # too few to fix the wall directions alone (apartment R1 came out 30 deg off and lost
+        # both its doorway links); then the stills stay in.
+        room_paths = [p for p in paths if not p.name.startswith("door-from-")]
+        has_stills = MIN_ROOM_PHOTOS <= len(room_paths) < len(paths)
+        pc, diag = _cached_capture(room_paths if has_stills else paths, f, cache, f.name, log)
+        stills = pc
+        if has_stills:
+            pc_all, _ = _cached_capture(paths, f, cache, f"{f.name}.doors", log)
+            stills, diag["doorway_stills"] = place_stills(pc, pc_all)
+        owner = [f.name] * len(pc)
         diags[f.name] = diag
         seg = folder_segment(pc, owner)
         res, cloud, U = pipeline_lidar.run(f, drift=False, cap=pc, tier="photo", log=lambda *a: None, segment=seg)
@@ -475,9 +534,12 @@ def run(capture_dir, log=print, cache=None, gap=1.0):
             w["id"] = f"{f.name}-W{w['id'].split('-W')[-1]}"
         r["yaw_rad_in_own_frame"] = res["alignment"]["yaw_rad"]
         own[f.name] = (r, cloud, U)
-        frames[f.name] = (pc, res["alignment"]["yaw_rad"], res["alignment"]["floor_y_world"])
-        views[f.name] = door_views(pc, res["alignment"]["yaw_rad"], res["alignment"]["floor_y_world"])
-        cams[f.name] = ([str(n) for n in pc.names], plan_xy(pc.T_wc[:, :3, 3], res["alignment"]["yaw_rad"]))
+        extra = stills if stills is not pc else None
+        frames[f.name] = (pc, res["alignment"]["yaw_rad"], res["alignment"]["floor_y_world"], extra)
+        views[f.name] = door_views(stills, res["alignment"]["yaw_rad"], res["alignment"]["floor_y_world"])
+        T_cam = pc.T_wc if extra is None else np.concatenate([pc.T_wc, extra.T_wc])
+        cams[f.name] = ([str(n) for n in pc.names] + ([] if extra is None else [str(n) for n in extra.names]),
+                        plan_xy(T_cam[:, :3, 3], res["alignment"]["yaw_rad"]))
         log(f"[photo] {f.name}: bbox {r['bbox_m']} m, area {r['floor_area_m2']['value']:.2f} m2, "
             f"scale x{diag['scale_vs_multiview']} (spread {diag['scale_spread_rel']}), "
             f"{len(views[f.name])} doorway photos")
@@ -562,7 +624,10 @@ def _merged_plan(capture_dir, frames, pose, own, links, log):
     outline in the joint pass (the per-room outlines are used then)."""
     from . import pipeline_lidar
     linked = {n for l in links for n in l["rooms"]}
-    parts = [(n, pc, plan_transform(yaw, fy, *pose[n])) for n, (pc, yaw, fy) in sorted(frames.items())]
+    # placed doorway stills join the room's photos here: their rays beyond the doorway claim the
+    # floor they see for their room, and their depth shows the door between the two rooms
+    parts = [(n, pc if st is None else with_stills(pc, st), plan_transform(yaw, fy, *pose[n]))
+             for n, (pc, yaw, fy, st) in sorted(frames.items())]
     pc, owner = merged_capture(capture_dir, parts)
     seg = folder_segment(pc, owner)
     res, cloud, U = pipeline_lidar.run(capture_dir, drift=False, cap=pc, tier="photo", log=lambda *a: None, segment=seg)
