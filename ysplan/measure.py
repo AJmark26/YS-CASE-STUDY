@@ -157,29 +157,84 @@ def area(poly, wall_list):
     return _val(mp.area, s)
 
 
-def ceiling(U, poly, floor_sigma=0.005, tier_scale=1.0, min_pts=200):
-    """Ceiling height above floor inside the room footprint, or an honest 'not observed'.
+def _level(h, h0, win=0.06, iters=5):
+    """Robust height of a horizontal surface near h0: median of the points within 3 MAD,
+    iterated. Returns (level, residual std, inlier mask)."""
+    sel = np.abs(h - h0) < win
+    lev = h0
+    for _ in range(iters):
+        if sel.sum() < 10:
+            break
+        lev = float(np.median(h[sel]))
+        mad = 1.4826 * float(np.median(np.abs(h[sel] - lev)))
+        sel = np.abs(h - lev) < 3 * max(mad, 0.005)
+    return lev, float(np.std(h[sel] - lev)) if sel.any() else 0.0, sel
 
-    Ceiling = densest 1 cm height bin among points above 2.0 m inside the room; its height is the
-    median of points within +-2 cm of that bin. Without enough ceiling points we report the highest
-    observed wall point as a lower bound and no value.
+
+def ceiling(U, poly, floor_sigma=0.005, tier_scale=1.0, min_pts=200, floor_observed=True):
+    """Floor-to-ceiling height of one room, or an honest 'not observed'.
+
+    Both surfaces are measured inside this room's footprint (15 cm in from the walls): the
+    ceiling level relative to this room's own floor level, so a room whose floor sits a
+    centimetre or two above or below the rest of the home is measured from its own floor. The
+    ceiling search starts from the 1 cm height bin covering the most area (counted in 5 cm
+    cells, so a patch the camera lingered on does not outweigh the rest of the ceiling); each
+    level is a robust median (3-MAD inliers, iterated).
+
+    sigma^2 = ceiling level^2 + floor level^2 + sensor^2 + relief^2, where each level term is
+    the residual scatter over sqrt(n/25), and `relief` is how much the ceiling height varies
+    across the room (spread of 10 cm cell medians, minus what sensor noise puts into a cell
+    median): lights, beams, a stepped section, or a slope. With it, a laser reading taken
+    anywhere in the room should fall inside the interval.
+    Without enough ceiling points we report the highest observed point as a lower bound. If the
+    floor was not seen anywhere in the capture, nothing is reported.
     """
     from shapely import contains_xy
-    inside = contains_xy(poly.buffer(-0.15), U[:, 0], U[:, 2])
-    h = U[inside, 1]
-    top = h[h > 2.0]
+    if not floor_observed:                        # no floor anywhere: any height would be a guess
+        return {"value": None, "ci95": None, "sigma": None, "status": "not_observed",
+                "reason": "floor not seen", "lower_bound_m": None}
+    inner = poly.buffer(-0.15)
+    if inner.is_empty:
+        inner = poly
+    V = U[contains_xy(inner, U[:, 0], U[:, 2])]
+    h = V[:, 1]
+    top = V[h > 2.0]
     lower = float(np.percentile(h, 99.9)) if len(h) else None
-    if len(top) >= min_pts:
-        hist, e = np.histogram(top, bins=np.arange(2.0, top.max() + 0.02, 0.01))
-        k = int(np.argmax(hist))
-        if hist[k] >= min_pts / 4:
-            sel = top[np.abs(top - (e[k] + 0.005)) < 0.02]
-            val = float(np.median(sel))
-            s = float(np.hypot(np.std(sel) / np.sqrt(max(1, len(sel) / 25)), floor_sigma, ) * tier_scale)
-            s = float(np.hypot(s, SIGMA_SENSOR))
-            return dict(_val(val, s), status="measured", ceiling_points=int(len(sel)))
-    return {"value": None, "ci95": None, "sigma": None, "status": "not_observed",
-            "lower_bound_m": round(lower, 3) if lower is not None else None}
+    not_seen = {"value": None, "ci95": None, "sigma": None, "status": "not_observed",
+                "lower_bound_m": round(lower, 3) if lower is not None else None}
+    if len(top) < min_pts:
+        return not_seen
+    cells = np.unique(np.c_[np.floor(top[:, 0] / 0.05), np.floor(top[:, 2] / 0.05),
+                            np.floor((top[:, 1] - 2.0) / 0.01)].astype(np.int64), axis=0)
+    cover = np.bincount(cells[:, 2])
+    k = int(np.argmax(cover))
+    if cover[k] < 20:
+        return not_seen
+    c_lev, c_res, c_in = _level(top[:, 1], 2.0 + (k + 0.5) * 0.01)
+    fsel = np.abs(h) < 0.06
+    if fsel.sum() >= min_pts:
+        f_lev, f_res, f_in = _level(h[fsel], 0.0)
+        s_floor = f_res / np.sqrt(max(1.0, f_in.sum() / 25.0))
+        f_n, floor_note = int(f_in.sum()), "room floor"
+    else:                                         # floor not seen in this room: global floor
+        f_lev, s_floor, f_n, floor_note = 0.0, floor_sigma, 0, "global floor (room floor not seen)"
+    T = top[c_in]
+    res = T[:, 1] - c_lev
+    _, inv, cnt = np.unique(np.floor(T[:, [0, 2]] / 0.10).astype(np.int64), axis=0,
+                            return_inverse=True, return_counts=True)
+    inv = inv.ravel()
+    ok = cnt >= 10
+    relief = 0.0
+    if ok.sum() >= 5:
+        groups = np.split(res[np.argsort(inv, kind="stable")], np.cumsum(cnt)[:-1])
+        med = np.array([np.median(g) for g, k_ in zip(groups, ok) if k_])
+        noise = np.mean((1.2533 * c_res) ** 2 / cnt[ok])
+        relief = float(np.sqrt(max(0.0, np.var(med) - noise)))
+    s_ceil = c_res / np.sqrt(max(1.0, len(T) / 25.0))
+    s = float(np.sqrt(s_ceil ** 2 + s_floor ** 2 + SIGMA_SENSOR ** 2 + relief ** 2)) * tier_scale
+    return dict(_val(c_lev - f_lev, s), status="measured", ceiling_points=int(len(T)), floor_points=f_n,
+                floor_reference=floor_note, floor_offset_cm=round(f_lev * 100, 2),
+                ceiling_relief_cm=round(relief * 100, 2))
 
 
 def _val(v, s):
