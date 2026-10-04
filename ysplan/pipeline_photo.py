@@ -35,6 +35,11 @@ class PhotoCapture:
     names: list = field(default_factory=list)
     min_inside: int = 1        # one camera position inside a room proves it was entered
     min_hits: int = 1          # most surfaces are seen by one or two photos only
+    # floor = densest low slab, not the camera-height finder: a few stills see well under 2 m2 of
+    # floor, so that finder would guess the floor and count furniture sides as walls, which cut
+    # the apartment's rooms 21-58% short (benchmark_report.md, photo tier)
+    floor_from_cameras: bool = False
+    report_ceilings: bool = False   # see pipeline_lidar.UNCHECKED_CEILING
 
     @property
     def frames(self):
@@ -325,6 +330,7 @@ def mask_rectangle(G, mask, lo=5, hi=95):
 
 def fallback_room(U, seg, rid):
     """Room record from the carved-floor rectangle, measured like any other room."""
+    from . import pipeline_lidar
     st = getattr(seg, "state", {})
     if "labels" not in st or st["labels"].max() == 0:
         return None
@@ -337,7 +343,7 @@ def fallback_room(U, seg, rid):
     lp = poly.representative_point()
     return {"id": rid, "polygon": [[round(x, 4), round(y, 4)] for x, y in list(poly.exterior.coords)[:-1]],
             "label_point": [lp.x, lp.y], "walls": [dict(w, id=f"{rid}-W{i + 1}") for i, w in enumerate(wl)],
-            "floor_area_m2": measure.area(poly, wl), "ceiling_height_m": measure.ceiling(U, poly, min_pts=100),
+            "floor_area_m2": measure.area(poly, wl), "ceiling_height_m": measure.withheld(pipeline_lidar.UNCHECKED_CEILING),
             "bbox_m": [round(poly.bounds[2] - poly.bounds[0], 3), round(poly.bounds[3] - poly.bounds[1], 3)],
             "wall_observed_fraction": round(float(np.mean([w["observed_fraction"] for w in wl])), 3),
             "outline": "carved_floor_rectangle"}

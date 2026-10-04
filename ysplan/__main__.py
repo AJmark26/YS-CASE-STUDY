@@ -77,17 +77,18 @@ def main(argv=None):
         import numpy as np
         np.save(out / "poses_world.npy", pipeline_lidar.run.poses.astype(np.float32))   # drift-corrected camera->world
     elif tier == "video":
-        from . import pipeline_lidar, pipeline_video
+        from . import measure, pipeline_lidar, pipeline_video
         if a.capture.is_dir() and (a.capture / "odometry.csv").exists():
             vc = pipeline_video.build(a.capture, depth=a.video_depth,
                                       cache=None if a.no_cache else out / "video_depths.npz")
-            result, cloud, U = pipeline_lidar.run(a.capture, drift=not a.no_drift, cap=vc, tier="video")
+            result, cloud, U = pipeline_lidar.run(a.capture, drift=not a.no_drift, cap=vc, tier="video",
+                                                  tier_scale=measure.TIER_SCALE["video"])
         else:                                   # plain clip from any camera app: no poses
             clip = a.capture if a.capture.is_file() else sorted(
                 [*a.capture.glob("*.mp4"), *a.capture.glob("*.MOV"), *a.capture.glob("*.mov")])[0]
             vc, stats = pipeline_video.build_posefree(clip)
             vc.stats = stats
-            result, cloud, U = pipeline_lidar.run(clip, drift=False, cap=vc, tier="video")
+            result, cloud, U = pipeline_lidar.run(clip, drift=False, cap=vc, tier="video", tier_scale=measure.TIER_SCALE["video"])
         result["video"] = vc.stats
     else:
         from . import pipeline_photo

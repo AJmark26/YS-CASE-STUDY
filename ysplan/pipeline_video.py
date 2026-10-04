@@ -33,6 +33,7 @@ class VideoCapture:
     depths: dict = field(default_factory=dict)
     stats: dict = field(default_factory=dict)
     rgb_size: tuple = (io_stray.RGB_W, io_stray.RGB_H)   # the video's own size, from the loader
+    report_ceilings: bool = False                        # see pipeline_lidar.UNCHECKED_CEILING
 
     def __len__(self):
         return len(self.frames)

@@ -17,6 +17,12 @@ import numpy as np
 Z95 = 1.96
 SIGMA_SENSOR = 0.005
 SIGMA_UNOBSERVED = 0.10
+# Interval scale per tier. Video: the smallest whole multiple that puts 95% of the 19 walls
+# compared with LiDAR (bench/benchmark.json, video_vs_lidar_*) inside their combined 95% interval
+# (18 of 19 at 5; 13 of 19 at 1). It is fitted on the walls it is checked on, so it is not an
+# independent test. Photo stays at 1: its large errors come from floor the stills never saw, which
+# no multiple of a measurement sigma describes (the report gives its coverage as measured).
+TIER_SCALE = {"lidar": 1.0, "video": 5.0, "photo": 1.0}
 
 
 def face_stats(U, axis, line, lo, hi, tol=0.05, band=(0.2, 2.2)):
@@ -237,6 +243,12 @@ def ceiling(U, poly, floor_sigma=0.005, tier_scale=1.0, min_pts=200, floor_obser
     return dict(_val(c_lev - f_lev, s), status="measured", ceiling_points=int(len(T)), floor_points=f_n,
                 floor_reference=floor_note, floor_offset_cm=round(f_lev * 100, 2),
                 ceiling_relief_cm=round(relief * 100, 2))
+
+
+def withheld(reason):
+    """Ceiling record when no height may be reported (same shape as a not-observed ceiling)."""
+    return {"value": None, "ci95": None, "sigma": None, "status": "not_observed", "reason": reason,
+            "lower_bound_m": None}
 
 
 def _val(v, s):

@@ -7,6 +7,12 @@ from . import drift as drift_mod
 from . import fuse, grid, io_stray, layout, measure, openings, rooms
 
 
+# Predicted depth puts points where no ceiling was seen: the video run of the floor-only capture
+# reported a 2.07 m ceiling in a room whose LiDAR never saw above 1.86 m. No sample capture has
+# both a ceiling sweep and a video-tier run, so these tiers report no heights until one does.
+UNCHECKED_CEILING = "ceiling heights from predicted depth are not checked against LiDAR yet, so none is reported"
+
+
 def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high_rays=True, tier_scale=1.0,
         segment=None):
     """Geometry pipeline shared by all tiers. `cap` defaults to the LiDAR capture; the video tier
@@ -33,7 +39,8 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high
         frames = np.array([f for f in frames if f in cap.depths])
         step = 1
     P, _ = fuse.fuse(cap, poses=poses, frame_ids=frames[::step], min_hits=getattr(cap, "min_hits", 2 if tier != "lidar" else 3))
-    U, floor_y, yaw = grid.align(P, cam_y=poses[frames, 1, 3])
+    cam_y = poses[frames, 1, 3] if getattr(cap, "floor_from_cameras", True) else None
+    U, floor_y, yaw = grid.align(P, cam_y=cam_y)
     floor_seen = grid.align.floor_observed
     if not floor_seen:
         log(f"[{tier}] floor not seen: heights are relative to a guessed floor and are not reported")
@@ -77,7 +84,8 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high
             "label_point": [lp.x, lp.y],
             "walls": [dict(w, id=f"{rid}-W{i + 1}") for i, w in enumerate(wl)],
             "floor_area_m2": measure.area(poly, wl),
-            "ceiling_height_m": measure.ceiling(U, poly, tier_scale=tier_scale, floor_observed=floor_seen),
+            "ceiling_height_m": measure.ceiling(U, poly, tier_scale=tier_scale, floor_observed=floor_seen)
+            if getattr(cap, "report_ceilings", True) else measure.withheld(UNCHECKED_CEILING),
             "bbox_m": [round(poly.bounds[2] - poly.bounds[0], 3), round(poly.bounds[3] - poly.bounds[1], 3)],
             "wall_observed_fraction": round(float(np.mean([w["observed_fraction"] for w in wl])), 3),
             "squared_by_deg": round(float(np.degrees(yaw_r)), 2),
@@ -85,7 +93,7 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high
     ops = openings.detect_lines(U, G, polys, c_low, c_mid)
     for i, o in enumerate(ops, 1):
         o["id"] = f"{o['type'][0].upper()}{i}"
-        o["width_m"] = measure._val(o["width_m"], o.pop("sigma_m"))
+        o["width_m"] = measure._val(o["width_m"], o.pop("sigma_m") * tier_scale)
     adjacency = _adjacency(polys, ops)
     timing["layout_s"] = time.time() - t0 - timing["drift_s"] - timing["fuse_s"]
     timing["total_s"] = time.time() - t0
