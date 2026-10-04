@@ -1,5 +1,7 @@
 """Photo-tier benchmark set that follows the capture protocol: per room, 2 to 8 sharp stills
-whose neighbours overlap, plus a still through each doorway from both sides.
+whose neighbours overlap, plus a still through each doorway from both sides. A doorway still goes
+in the folder of the room it looks into and is named door-from-<room>_*.jpg after the room the
+photographer stands in; the photo tier uses these pairs to stitch rooms together.
 
 make_photo_set.py picks stills that look in as many different directions as possible. Those
 barely overlap (on the single_room capture only 2 of 30 photo pairs share any surface), so no
@@ -105,20 +107,26 @@ def main():
                 break
             chosen.append(best)
         picks[room["id"]] = sorted(set(chosen))
-    for o in plan["openings"]:                                   # doorway stills, as before
-        if len(o.get("rooms", [])) < 2:
-            continue
-        mid = (o["from"] + o["to"]) / 2
-        cxy = np.array([mid, o["line"]]) if o["axis"] == "u" else np.array([o["line"], mid])
-        fwd = cap.T_wc[:, :3, 2]
-        c, s = np.cos(plan["alignment"]["yaw_rad"]), np.sin(plan["alignment"]["yaw_rad"])
-        fdir = np.stack([fwd[:, 0] * c + fwd[:, 2] * s, -fwd[:, 0] * s + fwd[:, 2] * c], 1)
-        near = np.flatnonzero((np.linalg.norm(xy - cxy, axis=1) < 0.6) & level & (sh > 0))
-        for rid in o["rooms"]:
-            poly = Polygon(next(r["polygon"] for r in plan["rooms"] if r["id"] == rid))
-            look = [i for i in near if poly.contains(Point(xy[i] + 1.5 * fdir[i] / max(np.linalg.norm(fdir[i]), 1e-6)))]
-            if look and rid in picks and len(picks[rid]) < a.per_room + 2:
-                picks[rid] = sorted(set(picks[rid]) | {int(max(look, key=lambda i: sh[i]))})
+    doors = {}                                                   # rid -> {frame: room the camera stands in}
+    # doorway stills: for each pair of adjacent rooms, the sharpest frame taken from one room,
+    # within 1 m of the other and looking into it (both directions when the video has them)
+    yaw = plan["alignment"]["yaw_rad"]
+    c, s = np.cos(yaw), np.sin(yaw)
+    fwd = cap.T_wc[:, :3, 2]
+    fdir = np.stack([fwd[:, 0] * c + fwd[:, 2] * s, -fwd[:, 0] * s + fwd[:, 2] * c], 1)
+    fdir /= np.maximum(np.linalg.norm(fdir, axis=1, keepdims=True), 1e-6)
+    polys = {r["id"]: Polygon(r["polygon"]) for r in plan["rooms"]}
+    for adj in plan.get("adjacency", []):
+        for A, B in (adj["rooms"], adj["rooms"][::-1]):
+            if B not in picks:
+                continue
+            cand = [i for i in np.flatnonzero(level & (sh > 0))
+                    if polys[A].contains(Point(xy[i])) and polys[B].distance(Point(xy[i])) < 1.0
+                    and polys[B].contains(Point(xy[i] + 1.5 * fdir[i]))]
+            if cand:
+                f = int(max(cand, key=lambda i: sh[i]))
+                picks[B] = sorted(set(picks[B]) | {f})
+                doors.setdefault(B, {})[f] = A
     for rid, fs in picks.items():
         ov = [round(max(overlap(cap, i, j), overlap(cap, j, i)), 2) for i, j in zip(fs[:-1], fs[1:])]
         report[rid] = {"frames": fs, "consecutive_overlap": ov}
@@ -129,7 +137,9 @@ def main():
         d.mkdir(parents=True, exist_ok=True)
         for f in fs:
             img, f35 = upright(frames[f], cap.T_wc[f], cap.K_rgb[f])
-            save_jpeg(d / f"{f:06d}.jpg", img, f35)
+            # protocol: a doorway still is named after the room the photographer stands in
+            name = f"door-from-{doors[rid][f]}_{f:06d}.jpg" if f in doors.get(rid, {}) else f"{f:06d}.jpg"
+            save_jpeg(d / name, img, f35)
     (a.out / "_source_frames.json").write_text(json.dumps({k: v["frames"] for k, v in report.items()}, indent=1))
     (a.out / "_overlap.json").write_text(json.dumps(report, indent=1))
     for k, v in report.items():
