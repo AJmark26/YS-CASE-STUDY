@@ -36,7 +36,10 @@ def face_stats(U, axis, line, lo, hi, tol=0.05, band=(0.2, 2.2)):
 def walls(U, poly, sigma_drift=0.0, tier_scale=1.0):
     """Measure every edge of a rectilinear room polygon.
 
-    The length of edge k is bounded by the faces of edges k-1 and k+1 (perpendicular walls).
+    Each edge's wall face is located from its supporting points. Each corner is moved to the
+    intersection of its two measured faces, so the length of edge k is the distance between the
+    measured faces of edges k-1 and k+1, not the grid-snapped polygon. Unobserved faces keep
+    their polygon position.
     """
     xy = list(poly.exterior.coords)[:-1]
     n = len(xy)
@@ -48,27 +51,46 @@ def walls(U, poly, sigma_drift=0.0, tier_scale=1.0):
         lo, hi = sorted([x0, x1] if horiz else [y0, y1])
         edges.append({"axis": axis, "line": line, "lo": lo, "hi": hi,
                       "face": face_stats(U, axis, line, lo + 0.05, hi - 0.05)})
+    # corner k joins edge k-1 and edge k; one is horizontal (fixes y), the other vertical (fixes x)
+    corners = []
+    for k in range(n):
+        a, b = edges[k - 1], edges[k]
+        if a["axis"] == b["axis"]:
+            corners.append(xy[k])
+            continue
+        h, v = (a, b) if a["axis"] == 0 else (b, a)
+        corners.append((v["face"]["pos"], h["face"]["pos"]))
     out = []
     for k, e in enumerate(edges):
         a, b = edges[k - 1]["face"], edges[(k + 1) % n]["face"]
         sd = sigma_drift / np.sqrt(2)
         sa = np.sqrt(a["sigma"] ** 2 + sd ** 2) * tier_scale
         sb = np.sqrt(b["sigma"] ** 2 + sd ** 2) * tier_scale
-        L = e["hi"] - e["lo"]
+        (x0, y0), (x1, y1) = corners[k], corners[(k + 1) % n]
+        L = abs(x1 - x0) if e["axis"] == 0 else abs(y1 - y0)
         s = float(np.hypot(sa, sb))
-        x0, y0 = xy[k]
-        x1, y1 = xy[(k + 1) % n]
         out.append({"from": [round(x0, 4), round(y0, 4)], "to": [round(x1, 4), round(y1, 4)],
                     "length_m": _val(L, s), "observed_fraction": round(e["face"]["observed"], 3),
-                    "face_points": e["face"]["n"]})
+                    "face_points": e["face"]["n"],
+                    # the length is measured only if both perpendicular walls that bound it were seen
+                    "ends_observed": bool(a["observed"] > 0 and b["observed"] > 0)})
     return out
 
 
+def measured_polygon(wall_list):
+    """Room outline through the measured wall faces (corners from walls())."""
+    from shapely.geometry import Polygon
+    return Polygon([w["from"] for w in wall_list]).buffer(0)
+
+
 def area(poly, wall_list):
-    """Floor area with interval from perimeter x mean face sigma (first-order)."""
+    """Floor area of the measured outline, interval from perimeter x mean face sigma (first-order)."""
+    mp = measured_polygon(wall_list)
+    if not mp.is_valid or mp.is_empty or abs(mp.area - poly.area) > 0.25 * poly.area:
+        mp = poly
     sig = np.mean([w["length_m"]["sigma"] for w in wall_list]) / np.sqrt(2)
-    s = float(poly.length * sig)
-    return _val(poly.area, s)
+    s = float(mp.length * sig)
+    return _val(mp.area, s)
 
 
 def ceiling(U, poly, floor_sigma=0.005, tier_scale=1.0, min_pts=200):
