@@ -60,7 +60,7 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high
     polys = {i: p for i, p in enumerate(sorted(polys.values(), key=lambda g: -g.area), 1)}
     log(f"[{tier}] {len(polys)} rooms ({len(unvisited)} regions seen only through doorways)")
     sigma_drift = drift_rep.get("loop_misalignment_cm_after", 0.0) / 100.0 if drift else 0.0
-    out_rooms, per_room_open = [], {}
+    out_rooms = []
     for k, poly in polys.items():
         rid = f"R{k}"
         yaw_r = measure.room_yaw(U, poly)          # residual drift can leave a room slightly turned
@@ -77,13 +77,10 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high
             "wall_observed_fraction": round(float(np.mean([w["observed_fraction"] for w in wl])), 3),
             "squared_by_deg": round(float(np.degrees(yaw_r)), 2),
         })
-        per_room_open[rid] = openings.detect(U, G, poly, c_low, c_mid)
-    ops = openings.merge(per_room_open)
+    ops = openings.detect_lines(U, G, polys, c_low, c_mid)
     for i, o in enumerate(ops, 1):
         o["id"] = f"{o['type'][0].upper()}{i}"
-        s_open = np.hypot(0.006, np.std(o["widths_seen"]) if len(o["widths_seen"]) > 1 else 0.0)
-        o["width_m"] = measure._val(o["width_m"], s_open if o["jambs_found"] == 2 else 0.05)
-        o.pop("widths_seen", None)
+        o["width_m"] = measure._val(o["width_m"], o.pop("sigma_m"))
     adjacency = _adjacency(polys, ops)
     timing["layout_s"] = time.time() - t0 - timing["drift_s"] - timing["fuse_s"]
     timing["total_s"] = time.time() - t0

@@ -87,8 +87,10 @@ a rotated ARKit world, the older export format, a .zip) to check this before a l
 7. **Measurements** (`ysplan/measure.py`): each wall face is located from its own points, and
    corners are moved to where the measured faces meet. The error model is described at the top of
    the file.
-8. **Openings** (`ysplan/openings.py`): doors, openings and windows are found where carving rays
-   cross a wall line. The width is measured jamb to jamb from wall points.
+8. **Openings** (`ysplan/openings.py`): along every wall line of the plan, a door, opening or
+   window is a gap in solid wall (wall points at most heights) that carving rays crossed. Each
+   jamb is the edge of solid wall, measured per height slice, so clutter beside a door cannot
+   move it; its spread over the slices sets the width interval.
 
 ## Output schema (`plan.json`)
 
