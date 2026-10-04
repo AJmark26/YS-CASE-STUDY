@@ -38,7 +38,8 @@ def main(argv=None):
         result, cloud, U = pipeline_lidar.run(a.capture, drift=not a.no_drift, cap=vc, tier="video")
         result["video"] = vc.stats
     else:
-        raise SystemExit(f"tier {tier} not implemented yet")
+        from . import pipeline_photo
+        result, cloud, U = pipeline_photo.run(a.capture, cache=None if a.no_cache else out / "photo_recon")
     (out / "plan.json").write_text(json.dumps(result, indent=1))
     import numpy as np
     np.savez_compressed(out / "wall_points_plan.npz", xy=cloud.astype(np.float32))
