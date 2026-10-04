@@ -20,16 +20,21 @@ def main(argv=None):
     ap.add_argument("-o", "--out", type=Path, default=None)
     ap.add_argument("--tier", choices=["lidar", "video", "photo"], default=None)
     ap.add_argument("--no-drift", action="store_true", help="use raw ARKit poses (ablation)")
+    ap.add_argument("--no-cache", action="store_true", help="recompute learned depth even if cached")
+    ap.add_argument("--video-depth", choices=["mapanything", "mono"], default="mapanything",
+                    help="video tier depth source (mono = the earlier monocular baseline, for ablation)")
     a = ap.parse_args(argv)
     tier = a.tier or detect_tier(a.capture)
-    out = a.out or Path("out") / f"{a.capture.stem}_{tier}{'_nodrift' if a.no_drift else ''}"
+    tag = "_mono" if tier == "video" and a.video_depth == "mono" else ""
+    out = a.out or Path("out") / f"{a.capture.stem}_{tier}{tag}{'_nodrift' if a.no_drift else ''}"
     out.mkdir(parents=True, exist_ok=True)
     if tier == "lidar":
         from . import pipeline_lidar
         result, cloud, U = pipeline_lidar.run(a.capture, drift=not a.no_drift)
     elif tier == "video":
         from . import pipeline_lidar, pipeline_video
-        vc = pipeline_video.build(a.capture)
+        vc = pipeline_video.build(a.capture, depth=a.video_depth,
+                                  cache=None if a.no_cache else out / "video_depths.npz")
         result, cloud, U = pipeline_lidar.run(a.capture, drift=not a.no_drift, cap=vc, tier="video")
         result["video"] = vc.stats
     else:
