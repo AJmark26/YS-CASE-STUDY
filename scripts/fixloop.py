@@ -83,6 +83,30 @@ def ceiling_round(a):
     return run, rows
 
 
+def on_solid_wall(run_dir, tol=0.03):
+    """Openings lying mostly (over half their width) on wall that the same capture saw as solid,
+    i.e. with points in at least half the 10 cm slices from 0.3 to 1.9 m, on some line within
+    6 cm of the opening's own line. Such an opening contradicts its own capture."""
+    import numpy as np
+    U = np.load(run_dir / "points_plan_frame.npz")["U"]
+    U = U[(U[:, 1] > 0.3) & (U[:, 1] < 1.9)]
+    ops = json.loads((run_dir / "plan.json").read_text())["openings"]
+    bad = []
+    for o in ops:
+        cax, aax = (0, 2) if o["axis"] == "v" else (2, 0)
+        lo, hi = o["from"] + 0.04, o["to"] - 0.04
+        nb = max(1, int((hi - lo) / 0.02))
+        best = 0.0
+        for q in np.arange(o["line"] - 0.06, o["line"] + 0.061, 0.02):
+            m = (np.abs(U[:, cax] - q) < tol) & (U[:, aax] > lo) & (U[:, aax] < hi)
+            occ = np.zeros((nb, 16), bool)
+            occ[((U[m, aax] - lo) / 0.02).astype(int).clip(0, nb - 1), ((U[m, 1] - 0.3) / 0.1).astype(int).clip(0, 15)] = True
+            best = max(best, float((occ.mean(1) >= 0.5).mean()))
+        if best > 0.5:
+            bad.append(o["id"])
+    return {"reported": len(ops), "on_solid_wall": len(bad), "ids": bad}
+
+
 def openings_round(a):
     def run(wt):
         out = wt / "out5"
@@ -90,6 +114,9 @@ def openings_round(a):
             sh([sys.executable, "-m", "ysplan", a.data.resolve() / c, "-o", out / f"{c}_lidar", "--no-damage"], cwd=wt)
         sh([sys.executable, wt / "scripts" / "benchmark.py", out, wt / "bench_run"], cwd=wt)
         b = json.loads((wt / "bench_run" / "benchmark.json").read_text())["openings_repeatability_lidar"]
+        b["self_check"] = {c: on_solid_wall(out / f"{c}_lidar") for c in CAPTURES}
+        b["on_solid_wall"] = sum(v["on_solid_wall"] for v in b["self_check"].values())
+        b["reported"] = sum(v["reported"] for v in b["self_check"].values())
         b["pairs"] = {k: {kk: vv for kk, vv in v.items() if kk not in ("matched", "unmatched")}
                       | {"matched": [(m["id_ref"], m["id_test"], m["width_ref"], m["width_test"], m["diff_cm"])
                                      for m in v["matched"]]}
@@ -100,7 +127,9 @@ def openings_round(a):
             ("matched", "found by both captures", 1, ""),
             ("matched_within_2cm", "matched ones within 2 cm", 100, "%"),
             ("median_abs_diff_cm", "median width difference", 1, " cm"),
-            ("within_ci95", "differences inside the 95% interval", 100, "%")]
+            ("within_ci95", "differences inside the 95% interval", 100, "%"),
+            ("reported", "openings reported on the three captures", 1, ""),
+            ("on_solid_wall", "of those, lying mostly on wall the same capture saw as solid", 1, "")]
     return run, rows
 
 

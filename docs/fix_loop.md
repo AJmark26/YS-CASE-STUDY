@@ -11,7 +11,7 @@ numbers with each tag's own code. Rejected rounds are kept with their numbers.
 | 2 | Wall repeatability | 43.3% | 12% to 30% for seven variants | rejected |
 | 3 | Ceiling spread (1 cm) | 4 of 6 rooms | 5 of 6 rooms | shipped, short of the gate |
 | 4 | Calibration of wall intervals | 86.7% inside 95% CI | 90% to 100%, but 2 to 10 times wider intervals | rejected |
-| 5 | Opening widths (2 cm on 85%) | 0 of 37 openings | see below | declared |
+| 5 | Opening widths (2 cm on 85%) | 0 of {{b5_n}} openings | 0 of {{a5_n}} openings | shipped, prediction badly wrong |
 
 Rounds 1 to 3 were run before this file existed, and no numeric prediction was written down
 for them before the fix shipped. Round 5 is the first one declared in advance: its prediction
@@ -66,7 +66,7 @@ from 1.6 to 16.4 cm. Searching only the room side, above 1.4 m, gave 90% coverag
 and still missed all three 12 cm walk-in errors (their sigmas stayed at 0.8 to 2.3 cm): those
 errors come from the outline taking a different jog, not from a second surface at the face.
 
-## Round 5: opening widths (declared)
+## Round 5: opening widths (shipped; prediction badly wrong)
 
 - **Gate and number.** Opening widths within 2 cm on at least 85% of openings, with missed
   and phantom openings counted as failures. Measured with `compare_openings` in
@@ -101,3 +101,54 @@ errors come from the outline taking a different jog, not from a second surface a
   on these captures: the floor-only capture rarely sees jambs above 1.2 m, and the captures
   still disagree on room coverage. Intervals should cover at least 80% of the matched
   differences (now 1 of 6).
+
+### Round 5 result
+
+| Measure (3 capture pairs) | Before | Predicted | After |
+|---|---|---|---|
+| Openings either capture reports in the area both cover | {{b5_n}} | | {{a5_n}} |
+| Found by both captures | {{b5_m}} | about 15 | {{a5_m}} |
+| Within 2 cm (the gate counts misses as failures) | 0% | 15 to 25% | 0% |
+| Matched differences inside the 95% interval | {{b5_ci}} | 80% or more | {{a5_ci}} |
+
+Regenerate with `python scripts/fixloop.py --rounds 5` (tags `fixloop-5-before`,
+`fixloop-5-after`; tables in `bench/fixloop/round5.md`).
+
+**Post-mortem.** The prediction was badly wrong: fewer openings are found by both captures, not
+more, and the few that are matched are different objects (their widths differ by 20 cm to
+1.4 m), so neither the pass rate nor the calibration moved. To see why, every opening that one
+capture reports and the other misses was looked up in the other capture at the same place
+(24 openings over the three pairs; `bench/fixloop/round5_misses.json`, a one-off diagnostic
+computed on the pipeline's internal ray-carving grids, which `fixloop.py` does not regenerate):
+
+| What the other capture shows there | Openings |
+|---|---|
+| A gap that rays crossed, rejected because the wall beside it is not solid at most heights | 10 |
+| No searched stretch of wall line passes there | 8 |
+| Solid wall (a door closed in one walk, or a phantom in the first) | 4 |
+| No rays crossed the line (that side was not scanned) | 2 |
+
+Hypothesis 1 (detection follows the room split) is right for 8 of 24: searching every outline
+edge plus tall partitions still leaves wall lines that are neither in the other capture. The
+fix's own jamb rule causes the largest group. Requiring solid wall over most of 0.3 to 1.9 m on
+both sides of a gap is what keeps clutter out of the jambs (hypothesis 2), but in these walks
+the wall beside a door is often seen only below 1.2 m or only on one side, so the other capture
+sees the gap and drops it. The trade between clutter-proof jambs and detection was not in the
+declaration, and it dominates on these captures.
+
+**What shipped anyway, and why.** The gate number is what was declared, and it did not move.
+The code still ships because it removes a failure the old detector had within a single
+capture: of the openings the old detector reported on the three samples, {{b5_solid}} of {{b5_rep}} lie mostly
+(over half their width) on wall that the same capture saw as solid from 0.3 to 1.9 m; with
+the new detector it is {{a5_solid}} of {{a5_rep}}. The new detector looks for gaps in solid wall, so this check
+partly restates its own rule and is not evidence of accuracy, but an opening drawn across
+wall the capture itself saw is wrong whatever the method. A detected door's width also no
+longer moves with clutter beside it: each jamb is measured at many heights and its spread
+sets the interval. (`self_check` in `bench/fixloop/round5.json`.)
+
+**Next step if this round were repeated.** Accept a jamb that is solid on one side only, or
+solid over at least three height slices, and widen the interval for it, instead of dropping
+the opening; and search every wall line of the fused cloud rather than those near room
+outlines. Predicted effect: most of the 10 rejected gaps and some of the 8 unsearched ones
+become matches; widths would still differ by more than 2 cm wherever one capture sees a jamb
+only low down, so the gate would stay well short.

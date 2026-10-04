@@ -1,0 +1,221 @@
+{
+ "note": "For each opening one capture reports and the other misses (after registration), what the other capture shows at that place. solid_frac: share of the span with solid wall on the best line within 30 cm; rays: share of the span where floor rays crossed. Computed at commit e803d09 on stored pipeline internals.",
+ "rows": [
+  {
+   "pair": "1a83~c7d2",
+   "found_in": "1a83",
+   "id": "D2",
+   "width": 0.6889,
+   "why": "gap seen, rejected by jamb or depth checks",
+   "solid_frac": 0.23,
+   "rays": 1.0
+  },
+  {
+   "pair": "1a83~c7d2",
+   "found_in": "1a83",
+   "id": "D5",
+   "width": 0.6052,
+   "why": "other capture sees solid wall here",
+   "solid_frac": 1.0,
+   "rays": 0.87
+  },
+  {
+   "pair": "1a83~c7d2",
+   "found_in": "1a83",
+   "id": "D7",
+   "width": 0.9087,
+   "why": "gap seen, rejected by jamb or depth checks",
+   "solid_frac": 0.0,
+   "rays": 1.0
+  },
+  {
+   "pair": "1a83~c7d2",
+   "found_in": "1a83",
+   "id": "D8",
+   "width": 1.2666,
+   "why": "other capture sees solid wall here",
+   "solid_frac": 1.0,
+   "rays": 1.0
+  },
+  {
+   "pair": "1a83~c7d2",
+   "found_in": "c7d2",
+   "id": "D1",
+   "width": 0.9896,
+   "why": "gap seen, rejected by jamb or depth checks",
+   "solid_frac": 0.24,
+   "rays": 1.0
+  },
+  {
+   "pair": "1a83~c7d2",
+   "found_in": "c7d2",
+   "id": "D2",
+   "width": 0.789,
+   "why": "gap seen, rejected by jamb or depth checks",
+   "solid_frac": 0.1,
+   "rays": 1.0
+  },
+  {
+   "pair": "1a83~c7d2",
+   "found_in": "c7d2",
+   "id": "D3",
+   "width": 1.0464,
+   "why": "no searched stretch of wall line covers it",
+   "solid_frac": 0.08,
+   "rays": 1.0
+  },
+  {
+   "pair": "1a83~c7d2",
+   "found_in": "c7d2",
+   "id": "D4",
+   "width": 0.6557,
+   "why": "no searched stretch of wall line covers it",
+   "solid_frac": 0.06,
+   "rays": 1.0
+  },
+  {
+   "pair": "1a83~c7d2",
+   "found_in": "c7d2",
+   "id": "D6",
+   "width": 0.9058,
+   "why": "gap seen, rejected by jamb or depth checks",
+   "solid_frac": 0.09,
+   "rays": 1.0
+  },
+  {
+   "pair": "1a83~c7d2",
+   "found_in": "c7d2",
+   "id": "D7",
+   "width": 0.7764,
+   "why": "other capture sees solid wall here",
+   "solid_frac": 1.0,
+   "rays": 1.0
+  },
+  {
+   "pair": "1a83~c7d2",
+   "found_in": "c7d2",
+   "id": "O8",
+   "width": 1.845,
+   "why": "no searched stretch of wall line covers it",
+   "solid_frac": 0.0,
+   "rays": 0.59
+  },
+  {
+   "pair": "1a83~c7d2",
+   "found_in": "c7d2",
+   "id": "D11",
+   "width": 1.0747,
+   "why": "no searched stretch of wall line covers it",
+   "solid_frac": 0.0,
+   "rays": 1.0
+  },
+  {
+   "pair": "1a83~c7d2",
+   "found_in": "c7d2",
+   "id": "O12",
+   "width": 1.6069,
+   "why": "rays did not cross the line",
+   "solid_frac": 0.46,
+   "rays": 0.3
+  },
+  {
+   "pair": "1a83~c00a",
+   "found_in": "1a83",
+   "id": "D6",
+   "width": 0.6103,
+   "why": "gap seen, rejected by jamb or depth checks",
+   "solid_frac": 0.06,
+   "rays": 1.0
+  },
+  {
+   "pair": "1a83~c00a",
+   "found_in": "1a83",
+   "id": "D7",
+   "width": 0.9087,
+   "why": "gap seen, rejected by jamb or depth checks",
+   "solid_frac": 0.0,
+   "rays": 1.0
+  },
+  {
+   "pair": "1a83~c00a",
+   "found_in": "c00a",
+   "id": "O1",
+   "width": 2.3344,
+   "why": "gap seen, rejected by jamb or depth checks",
+   "solid_frac": 0.04,
+   "rays": 0.94
+  },
+  {
+   "pair": "1a83~c00a",
+   "found_in": "c00a",
+   "id": "D2",
+   "width": 0.5988,
+   "why": "other capture sees solid wall here",
+   "solid_frac": 1.0,
+   "rays": 0.93
+  },
+  {
+   "pair": "c7d2~c00a",
+   "found_in": "c7d2",
+   "id": "D2",
+   "width": 0.789,
+   "why": "no searched stretch of wall line covers it",
+   "solid_frac": 0.02,
+   "rays": 1.0
+  },
+  {
+   "pair": "c7d2~c00a",
+   "found_in": "c7d2",
+   "id": "D4",
+   "width": 0.6557,
+   "why": "gap seen, rejected by jamb or depth checks",
+   "solid_frac": 0.09,
+   "rays": 1.0
+  },
+  {
+   "pair": "c7d2~c00a",
+   "found_in": "c7d2",
+   "id": "D5",
+   "width": 1.0868,
+   "why": "no searched stretch of wall line covers it",
+   "solid_frac": 0.02,
+   "rays": 0.28
+  },
+  {
+   "pair": "c7d2~c00a",
+   "found_in": "c7d2",
+   "id": "D6",
+   "width": 0.9058,
+   "why": "rays did not cross the line",
+   "solid_frac": 0.0,
+   "rays": 0.0
+  },
+  {
+   "pair": "c7d2~c00a",
+   "found_in": "c7d2",
+   "id": "O12",
+   "width": 1.6069,
+   "why": "no searched stretch of wall line covers it",
+   "solid_frac": 0.0,
+   "rays": 1.0
+  },
+  {
+   "pair": "c7d2~c00a",
+   "found_in": "c00a",
+   "id": "O1",
+   "width": 2.3344,
+   "why": "no searched stretch of wall line covers it",
+   "solid_frac": 0.04,
+   "rays": 0.97
+  },
+  {
+   "pair": "c7d2~c00a",
+   "found_in": "c00a",
+   "id": "D3",
+   "width": 0.8044,
+   "why": "gap seen, rejected by jamb or depth checks",
+   "solid_frac": 0.0,
+   "rays": 1.0
+  }
+ ]
+}
