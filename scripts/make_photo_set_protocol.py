@@ -64,6 +64,24 @@ def overlap(cap, i, j, stride=4):
     return float(np.sum((uj >= 0) & (uj < io_stray.RGB_W) & (vj >= 0) & (vj < io_stray.RGB_H)) / len(u))
 
 
+def passage(plan, polys, A, B):
+    """Doorway between rooms A and B: (centre xy, unit normal of its wall, half width, source).
+    A door or opening the LiDAR plan detected between them, else the strip where the two outlines
+    meet (an open passage)."""
+    for o in plan.get("openings", []):
+        if sorted(o.get("rooms", [])) == sorted([A, B]):
+            mid = (o["from"] + o["to"]) / 2
+            centre = np.array([mid, o["line"]]) if o["axis"] == "u" else np.array([o["line"], mid])
+            axis = np.array([0.0, 1.0]) if o["axis"] == "u" else np.array([1.0, 0.0])
+            return centre, axis, (o["to"] - o["from"]) / 2, o["id"]
+    shared = polys[A].buffer(0.15).intersection(polys[B].buffer(0.15))
+    if shared.is_empty:
+        return None
+    x0, y0, x1, y1 = shared.bounds
+    axis = np.array([0.0, 1.0]) if x1 - x0 >= y1 - y0 else np.array([1.0, 0.0])
+    return np.array(shared.centroid.coords[0]), axis, max(x1 - x0, y1 - y0) / 2, "shared wall"
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("capture", type=Path)
@@ -107,26 +125,40 @@ def main():
                 break
             chosen.append(best)
         picks[room["id"]] = sorted(set(chosen))
-    doors = {}                                                   # rid -> {frame: room the camera stands in}
-    # doorway stills: for each pair of adjacent rooms, the sharpest frame taken from one room,
-    # within 1 m of the other and looking into it (both directions when the video has them)
-    yaw = plan["alignment"]["yaw_rad"]
+    doors, doorways = {}, []                                     # rid -> {frame: room the camera stands in}
+    # doorway stills, as the protocol asks: from each side of the doorway between two adjacent
+    # rooms, standing up to 2 m back and looking straight through it. The stitching reads the
+    # direction into the room from each still, so a still more than 45 deg oblique is not used.
     c, s = np.cos(yaw), np.sin(yaw)
-    fwd = cap.T_wc[:, :3, 2]
     fdir = np.stack([fwd[:, 0] * c + fwd[:, 2] * s, -fwd[:, 0] * s + fwd[:, 2] * c], 1)
     fdir /= np.maximum(np.linalg.norm(fdir, axis=1, keepdims=True), 1e-6)
     polys = {r["id"]: Polygon(r["polygon"]) for r in plan["rooms"]}
     for adj in plan.get("adjacency", []):
-        for A, B in (adj["rooms"], adj["rooms"][::-1]):
-            if B not in picks:
+        A0, B0 = adj["rooms"]
+        if A0 not in picks or B0 not in picks:
+            continue
+        door = passage(plan, polys, A0, B0)
+        if door is None:
+            continue
+        centre, axis, half, src = door
+        for A, B in ((A0, B0), (B0, A0)):
+            n = axis if polys[B].distance(Point(centre + 0.4 * axis)) < polys[B].distance(Point(centre - 0.4 * axis)) else -axis
+            e = np.array([-n[1], n[0]])
+            rel = xy - centre
+            back, lat = -(rel @ n), np.abs(rel @ e)
+            ang = np.degrees(np.arccos(np.clip(fdir @ n, -1, 1)))
+            ok = level & (sh > 0) & (back > 0.2) & (back < 2.0) & (lat <= max(0.4, half)) & (ang < 45)
+            ok &= np.array([polys[A].contains(Point(p)) for p in xy])
+            cand = np.flatnonzero(ok)
+            if len(cand) == 0:
+                doorways.append({"from": A, "into": B, "via": src, "frame": None})
                 continue
-            cand = [i for i in np.flatnonzero(level & (sh > 0))
-                    if polys[A].contains(Point(xy[i])) and polys[B].distance(Point(xy[i])) < 1.0
-                    and polys[B].contains(Point(xy[i] + 1.5 * fdir[i]))]
-            if cand:
-                f = int(max(cand, key=lambda i: sh[i]))
-                picks[B] = sorted(set(picks[B]) | {f})
-                doors.setdefault(B, {})[f] = A
+            cand = cand[ang[cand] <= ang[cand].min() + 10]          # the straightest views, then the sharpest
+            f = int(cand[np.argmax(sh[cand])])
+            picks[B] = sorted(set(picks[B]) | {f})
+            doors.setdefault(B, {})[f] = A
+            doorways.append({"from": A, "into": B, "via": src, "frame": f, "oblique_deg": round(float(ang[f]), 1),
+                             "metres_back": round(float(back[f]), 2)})
     for rid, fs in picks.items():
         ov = [round(max(overlap(cap, i, j), overlap(cap, j, i)), 2) for i, j in zip(fs[:-1], fs[1:])]
         report[rid] = {"frames": fs, "consecutive_overlap": ov}
@@ -142,6 +174,7 @@ def main():
             save_jpeg(d / name, img, f35)
     (a.out / "_source_frames.json").write_text(json.dumps({k: v["frames"] for k, v in report.items()}, indent=1))
     (a.out / "_overlap.json").write_text(json.dumps(report, indent=1))
+    (a.out / "_doorways.json").write_text(json.dumps(doorways, indent=1))
     for k, v in report.items():
         print(k, len(v["frames"]), "overlap", v["consecutive_overlap"])
 
