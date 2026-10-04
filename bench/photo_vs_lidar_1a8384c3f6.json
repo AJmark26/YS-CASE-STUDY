@@ -2,19 +2,19 @@
  "summary": {
   "rooms": 6,
   "rooms_reference": 6,
-  "walls_within_8pct": "2/3",
-  "median_abs_wall_err_pct": 1.9,
-  "wall_ci_coverage": "2/3",
-  "bbox_within_8pct": "0/12",
-  "area_within_8pct": "0/6",
-  "median_abs_bbox_err_pct": 32.1,
-  "area_ci_coverage": "0/6",
+  "walls_within_8pct": "0/1",
+  "median_abs_wall_err_pct": 16.7,
+  "wall_ci_coverage": "0/1",
+  "bbox_within_8pct": "3/12",
+  "area_within_8pct": "1/6",
+  "median_abs_bbox_err_pct": 32.2,
+  "area_ci_coverage": "2/6",
   "stitching": {
    "rooms_stitched": 3,
    "rooms_with_true_cameras": 6,
    "rotation_within_5deg": "3/3",
-   "median_offset_m": 0.249,
-   "max_offset_m": 0.296
+   "median_offset_m": 0.247,
+   "max_offset_m": 0.299
   }
  },
  "rooms": [
@@ -22,110 +22,94 @@
    "room": "R1",
    "lidar_room": "R1",
    "stitched": true,
-   "registration_fit": 0.553,
+   "registration_fit": 0.435,
    "placement": {
     "cameras": 4,
     "own_fit_rms_m": 0.105,
-    "offset_m": 0.249,
-    "rotation_err_deg": 1.7
+    "offset_m": 0.247,
+    "rotation_err_deg": 2.0
    },
    "walls": [],
-   "area": 7.7908,
+   "area": 11.8505,
    "area_ref": 16.8329,
-   "area_err_pct": -53.7,
+   "area_err_pct": -29.6,
    "area_ci_covers": false,
    "bbox": [
-    2.418,
-    4.041
+    3.24,
+    3.64
    ],
    "bbox_ref": [
     4.849,
     4.992
    ],
    "bbox_err_pct": [
-    -50.1,
-    -19.1
+    -33.2,
+    -27.1
    ]
   },
   {
    "room": "R2",
    "lidar_room": "R2",
    "stitched": true,
-   "registration_fit": 0.337,
+   "registration_fit": 0.144,
    "placement": {
     "cameras": 4,
-    "own_fit_rms_m": 0.042,
-    "offset_m": 0.078,
-    "rotation_err_deg": -0.5
+    "own_fit_rms_m": 0.043,
+    "offset_m": 0.071,
+    "rotation_err_deg": -0.4
    },
    "walls": [],
-   "area": 6.1532,
+   "area": 12.8585,
    "area_ref": 11.0731,
-   "area_err_pct": -44.4,
-   "area_ci_covers": false,
+   "area_err_pct": 16.1,
+   "area_ci_covers": true,
    "bbox": [
-    2.002,
-    3.611
+    2.009,
+    6.44
    ],
    "bbox_ref": [
     3.832,
     3.947
    ],
    "bbox_err_pct": [
-    -47.8,
-    -8.5
+    -47.6,
+    63.2
    ]
   },
   {
    "room": "R3",
    "lidar_room": "R3",
    "stitched": false,
-   "registration_fit": 0.874,
+   "registration_fit": 0.915,
    "placement": {
     "cameras": 9,
-    "own_fit_rms_m": 0.084
+    "own_fit_rms_m": 0.077
    },
    "walls": [
     {
      "wall": "W8",
      "length_ref": 0.6211,
-     "length_test": 0.6826,
-     "diff_cm": 6.2,
-     "diff_pct": 9.9,
+     "length_test": 0.7251,
+     "diff_cm": 10.4,
+     "diff_pct": 16.7,
      "ci95_covers": false
-    },
-    {
-     "wall": "W10",
-     "length_ref": 0.6008,
-     "length_test": 0.6084,
-     "diff_cm": 0.8,
-     "diff_pct": 1.3,
-     "ci95_covers": true
-    },
-    {
-     "wall": "W12",
-     "length_ref": 1.4535,
-     "length_test": 1.4256,
-     "diff_cm": -2.8,
-     "diff_pct": -1.9,
-     "ci95_covers": true
     }
    ],
-   "area": 4.7988,
+   "area": 8.4974,
    "area_ref": 8.4132,
-   "area_err_pct": -43.0,
-   "area_ci_covers": false,
+   "area_err_pct": 1.0,
+   "area_ci_covers": true,
    "bbox": [
-    1.94,
-    2.838
+    2.894,
+    2.923
    ],
    "bbox_ref": [
     2.892,
     3.121
    ],
    "bbox_err_pct": [
-    -32.9,
-    -9.1
+    0.1,
+    -6.3
    ]
   },
   {
@@ -159,48 +143,48 @@
    "room": "R5",
    "lidar_room": "R5",
    "stitched": true,
-   "registration_fit": 0.707,
+   "registration_fit": 0.77,
    "placement": {
     "cameras": 2,
-    "own_fit_rms_m": 0.03,
-    "offset_m": 0.296,
-    "rotation_err_deg": 4.2
+    "own_fit_rms_m": 0.031,
+    "offset_m": 0.299,
+    "rotation_err_deg": 4.5
    },
    "walls": [],
-   "area": 2.3844,
+   "area": 2.2594,
    "area_ref": 4.2423,
-   "area_err_pct": -43.8,
+   "area_err_pct": -46.7,
    "area_ci_covers": false,
    "bbox": [
-    1.11,
-    2.18
+    1.25,
+    2.546
    ],
    "bbox_ref": [
     2.002,
     2.441
    ],
    "bbox_err_pct": [
-    -44.6,
-    -10.7
+    -37.6,
+    4.3
    ]
   },
   {
    "room": "R6",
    "lidar_room": "R6",
    "stitched": false,
-   "registration_fit": 0.966,
+   "registration_fit": 0.999,
    "placement": {
     "cameras": 4,
-    "own_fit_rms_m": 0.012
+    "own_fit_rms_m": 0.016
    },
    "walls": [],
-   "area": 1.331,
+   "area": 1.125,
    "area_ref": 2.6864,
-   "area_err_pct": -50.5,
+   "area_err_pct": -58.1,
    "area_ci_covers": false,
    "bbox": [
     0.96,
-    1.38
+    1.16
    ],
    "bbox_ref": [
     1.4,
@@ -208,7 +192,7 @@
    ],
    "bbox_err_pct": [
     -31.4,
-    -34.0
+    -44.5
    ]
   }
  ]

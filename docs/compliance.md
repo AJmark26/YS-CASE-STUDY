@@ -11,11 +11,11 @@ Status key: **met**, **partial** (exists, with the gap named), **not met** (and 
 | Requirement | File | Artifact | Status |
 |---|---|---|---|
 | Capture route (Route 2: stock app plus one-page protocol) | `docs/capture_protocol.md` | Stray Scanner (LiDAR) and the stock Camera app (video, photos); what to install, how to walk, how long, what to avoid, how to hand over files | met |
-| Photo tier: 2 to 8 stills per room, no depth, no poses | `ysplan/pipeline_photo.py`, `ysplan/recon.py` | `plan.json` from a folder of per-room photo folders | partial: runs end to end from per-room folders; floor area within 8% on 0 of 8 rooms (2 of 8 on the earlier sets); 3 of 8 rooms stitched |
+| Photo tier: 2 to 8 stills per room, no depth, no poses | `ysplan/pipeline_photo.py`, `ysplan/recon.py` | `plan.json` from a folder of per-room photo folders | partial: runs end to end from per-room folders; floor area within 8% on 1 of 8 rooms; 3 of 8 rooms stitched |
 | Video tier: handheld walkthrough | `ysplan/pipeline_video.py` | `plan.json` from `rgb.mp4` | met for iPhone video with ARKit poses (needs the learned models; cached depth reruns without them); a clip without poses runs but recovers no room (experimental) |
 | LiDAR tier: depth, poses, intrinsics | `ysplan/pipeline_lidar.py` | `plan.json`, `plan.png` | met |
 | Same output contract at every tier | `docs/plan.schema.json` | one JSON Schema for all tiers | met |
-| Intervals widen as data thins | `ysplan/measure.py` (`tier_scale`, unobserved faces 10 cm) | wider `ci95` at video and photo tiers | partial: video wall intervals are 5 times the LiDAR model (median 5.4 cm), covering 18 of 19 walls against LiDAR, fitted on those walls; photo area intervals cover 0 of 8 rooms (3 of 8 on the earlier sets); video and photo ceilings withheld |
+| Intervals widen as data thins | `ysplan/measure.py` (`tier_scale`, unobserved faces 10 cm) | wider `ci95` at video and photo tiers | partial: video wall intervals are 5 times the LiDAR model (median 5.4 cm), covering 18 of 19 walls against LiDAR, fitted on those walls; photo area intervals cover 2 of 8 rooms; video and photo ceilings withheld |
 | Device matrix | `docs/capture_protocol.md`, technical report section 3 | tier by device, with measured accuracy | met; accuracy is measured on inputs made from the samples (depth deleted, stills cut from the video), not on other devices |
 
 ## Part 2: output contract
@@ -49,8 +49,8 @@ which gates can be measured and how.
 | Ceiling height within 1.5 cm; spread within 1 cm | `scripts/ceiling_repeat.py` | `bench/ceiling_repeat_c7d28f72c6.json` | spread measured, gate fails on 1 of 6 rooms (R3, 1.68 cm; median 0.57 cm); absolute accuracy not measurable |
 | Repeatability within 1 cm or 0.5% per wall | `scripts/benchmark.py` (`compare_runs`) | `bench/benchmark.json` | measured, gate fails: 37.9% of 29 walls, median 1.88 cm; all 29 inside their 95% intervals |
 | Drift accountability with on/off ablation | `ysplan/drift.py`, `--no-drift` | `drift_ablation` in `bench/benchmark.json` | met |
-| Photo-tier whole-property stitch | `ysplan/stitch.py`, `bench/photo_vs_lidar_*.json` | `photo.links`, `photo.unstitched_rooms` in `plan.json` | partial: 3 of 6 apartment rooms stitched at the right quarter turn, cameras within 0.30 m of truth; the other doorways lack a straight-on photo from both sides, and the bedroom pair (about 40 degrees off) is rejected |
-| Photo within 8%, video within 3%, calibrated | `scripts/benchmark.py` (tier vs LiDAR) | `bench/benchmark.json` | measured, gates fail: video 13 of 19 walls within 3% (median 2.27%); photo area within 8% on 0 of 8 rooms (2 of 8 on the earlier sets) |
+| Photo-tier whole-property stitch | `ysplan/stitch.py`, `bench/photo_vs_lidar_*.json` | `photo.links`, `photo.unstitched_rooms` in `plan.json` | partial: 3 of 6 apartment rooms stitched at the right quarter turn, cameras within 0.30 m of truth, but two stitched rooms overlap by 5.3 m² (noted in the plan); the other doorways lack a straight-on photo from both sides, and the bedroom pair (about 40 degrees off) is rejected |
+| Photo within 8%, video within 3%, calibrated | `scripts/benchmark.py` (tier vs LiDAR) | `bench/benchmark.json` | measured, gates fail: video 13 of 19 walls within 3% (median 2.27%); photo area within 8% on 1 of 8 rooms |
 
 ## Parts 3 to 5
 

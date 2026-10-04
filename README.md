@@ -184,4 +184,4 @@ loop closures and the misalignment before and after correction.
 | LiDAR | Runs end to end on all three sample captures |
 | Video, ARKit poses | Runs (MapAnything depth); 13 of 19 walls within 3% of LiDAR, but rooms fragment and the footprint comes out 28 to 42% short; ceilings withheld |
 | Video, no poses | Experimental: runs, recovers no room |
-| Photo | Runs (MapAnything, MoGe-2 scale); 3 of 8 sample rooms stitched at doorways, cameras within 0.30 m of truth; floor area 39 to 85% short of LiDAR |
+| Photo | Runs (MapAnything, MoGe-2 scale); 3 of 8 sample rooms stitched at doorways, cameras within 0.30 m of truth; floor area within 8% of LiDAR on 1 of 8 rooms, 30 to 85% short on six |

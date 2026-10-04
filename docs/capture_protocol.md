@@ -61,8 +61,8 @@ things matter more:
 
 One folder per room, named after the room, with 4 to 8 photos, plus one photo through each
 doorway from each side. The only photo sets tested are stills cut from the sample walkthrough
-videos, which follow this protocol only where the video happened to: the rooms came out 39 to
-85% short in floor area, and 3 of 8 rooms were stitched (`docs/benchmark_report.md`, Tiers
+videos, which follow this protocol only where the video happened to: floor area came within 8%
+of LiDAR in 1 of 8 rooms and 30 to 85% short in six, and 3 of 8 rooms were stitched (`docs/benchmark_report.md`, Tiers
 against LiDAR).
 
 | Do this | Why |
