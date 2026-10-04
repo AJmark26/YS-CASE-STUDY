@@ -1,0 +1,58 @@
+{
+ "summary": {
+  "rooms": 2,
+  "rooms_reference": 2,
+  "walls_within_8pct": "0/0",
+  "median_abs_wall_err_pct": null,
+  "bbox_within_8pct": "0/4",
+  "area_within_8pct": "0/2",
+  "median_abs_bbox_err_pct": 60.2,
+  "area_ci_coverage": "0/2"
+ },
+ "rooms": [
+  {
+   "room": "R1",
+   "lidar_room": "R1",
+   "registration_fit": 0.812,
+   "walls": [],
+   "area": 6.7963,
+   "area_ref": 14.1254,
+   "area_err_pct": -51.9,
+   "area_ci_covers": false,
+   "bbox": [
+    2.36,
+    2.88
+   ],
+   "bbox_ref": [
+    2.941,
+    7.843
+   ],
+   "bbox_err_pct": [
+    -19.8,
+    -63.3
+   ]
+  },
+  {
+   "room": "R2",
+   "lidar_room": "R2",
+   "registration_fit": 0.977,
+   "walls": [],
+   "area": 1.3278,
+   "area_ref": 6.8888,
+   "area_err_pct": -80.7,
+   "area_ci_covers": false,
+   "bbox": [
+    1.16,
+    1.22
+   ],
+   "bbox_ref": [
+    2.924,
+    3.069
+   ],
+   "bbox_err_pct": [
+    -60.3,
+    -60.2
+   ]
+  }
+ ]
+}

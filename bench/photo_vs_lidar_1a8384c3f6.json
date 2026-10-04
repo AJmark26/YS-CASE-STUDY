@@ -1,0 +1,146 @@
+{
+ "summary": {
+  "rooms": 6,
+  "rooms_reference": 6,
+  "walls_within_8pct": "0/0",
+  "median_abs_wall_err_pct": null,
+  "bbox_within_8pct": "3/12",
+  "area_within_8pct": "2/6",
+  "median_abs_bbox_err_pct": 22.3,
+  "area_ci_coverage": "3/6"
+ },
+ "rooms": [
+  {
+   "room": "R1",
+   "lidar_room": "R1",
+   "registration_fit": 0.805,
+   "walls": [],
+   "area": 5.537,
+   "area_ref": 16.8329,
+   "area_err_pct": -67.1,
+   "area_ci_covers": false,
+   "bbox": [
+    1.294,
+    5.14
+   ],
+   "bbox_ref": [
+    4.849,
+    4.992
+   ],
+   "bbox_err_pct": [
+    -73.3,
+    3.0
+   ]
+  },
+  {
+   "room": "R2",
+   "lidar_room": "R2",
+   "registration_fit": 0.635,
+   "walls": [],
+   "area": 12.8585,
+   "area_ref": 11.0731,
+   "area_err_pct": 16.1,
+   "area_ci_covers": true,
+   "bbox": [
+    2.009,
+    6.44
+   ],
+   "bbox_ref": [
+    3.832,
+    3.947
+   ],
+   "bbox_err_pct": [
+    -47.6,
+    63.2
+   ]
+  },
+  {
+   "room": "R3",
+   "lidar_room": "R3",
+   "registration_fit": 0.836,
+   "walls": [],
+   "area": 8.4974,
+   "area_ref": 8.4132,
+   "area_err_pct": 1.0,
+   "area_ci_covers": true,
+   "bbox": [
+    2.894,
+    2.923
+   ],
+   "bbox_ref": [
+    2.892,
+    3.121
+   ],
+   "bbox_err_pct": [
+    0.1,
+    -6.3
+   ]
+  },
+  {
+   "room": "R4",
+   "lidar_room": "R4",
+   "registration_fit": 0.974,
+   "walls": [],
+   "area": 4.8046,
+   "area_ref": 7.885,
+   "area_err_pct": -39.1,
+   "area_ci_covers": false,
+   "bbox": [
+    1.985,
+    2.42
+   ],
+   "bbox_ref": [
+    2.967,
+    3.238
+   ],
+   "bbox_err_pct": [
+    -33.1,
+    -25.3
+   ]
+  },
+  {
+   "room": "R5",
+   "lidar_room": "R5",
+   "registration_fit": 0.897,
+   "walls": [],
+   "area": 1.4859,
+   "area_ref": 4.2423,
+   "area_err_pct": -65.0,
+   "area_ci_covers": false,
+   "bbox": [
+    0.76,
+    1.97
+   ],
+   "bbox_ref": [
+    2.002,
+    2.441
+   ],
+   "bbox_err_pct": [
+    -62.0,
+    -19.3
+   ]
+  },
+  {
+   "room": "R6",
+   "lidar_room": "R6",
+   "registration_fit": 1.0,
+   "walls": [],
+   "area": 2.7064,
+   "area_ref": 2.6864,
+   "area_err_pct": 0.7,
+   "area_ci_covers": true,
+   "bbox": [
+    1.601,
+    1.691
+   ],
+   "bbox_ref": [
+    1.4,
+    2.09
+   ],
+   "bbox_err_pct": [
+    14.4,
+    -19.1
+   ]
+  }
+ ]
+}

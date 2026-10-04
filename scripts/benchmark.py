@@ -187,9 +187,10 @@ def main(out_root="out", bench_dir="bench"):
         "median_abs_diff_cm": round(float(np.median(diffs)), 2) if diffs else None,
         "within_ci95": round(float(np.mean([r["inside_ci95"] for v in op.values() for r in v["matched"]])), 3) if diffs else None,
         "pairs": op}
-    # cross-tier: video/photo vs LiDAR on the same capture
+    # cross-tier: video vs LiDAR on the same capture. The photo tier is scored room by room with
+    # scripts/eval_photo.py (bench/photo_vs_lidar_<capture>.json), since its rooms are not stitched.
     for cid in caps:
-        for tier, gate in (("video", 3.0), ("photo", 8.0)):
+        for tier, gate in (("video", 3.0),):
             d = out_root / f"{cid}_{tier}"
             if not (d / "plan.json").exists():
                 continue
