@@ -26,7 +26,8 @@ def apply(T, xy):
     return xy @ T[:2, :2].T + T[:2, 2]
 
 
-def icp2d(A, B, T, iters=40, max_d=0.15):
+def icp2d(A, B, T, iters=40, max_d=0.15, rotate=True):
+    """Point-to-point ICP in the plan. rotate=False refines translation only."""
     tree = cKDTree(A)
     for _ in range(iters):
         Bt = apply(T, B)
@@ -41,6 +42,8 @@ def icp2d(A, B, T, iters=40, max_d=0.15):
         if np.linalg.det(R) < 0:
             Vt[-1] *= -1
             R = (U @ Vt).T
+        if not rotate:
+            R = np.eye(2)
         dT = np.eye(3)
         dT[:2, :2] = R
         dT[:2, 2] = mq - R @ mp
@@ -49,8 +52,14 @@ def icp2d(A, B, T, iters=40, max_d=0.15):
     return T, float(np.isfinite(d).mean())
 
 
-def register(A, B, step=0.5, n_sub=1500, seed=0):
-    """Exhaustive start grid (4 rotations x translations every `step` m) + ICP; best inlier fit."""
+def register(A, B, step=0.5, n_sub=1500, seed=0, rotate=False):
+    """Exhaustive start grid (4 rotations x translations every `step` m) + ICP; best inlier fit.
+
+    Both plans are already Manhattan-aligned (each to within 0.2 deg on the sample captures), so
+    by default the rotation stays a multiple of 90 deg and only translation is refined. Free
+    rotation let ICP settle up to 1.9 deg off on partly overlapping captures, which tilts one
+    capture's walls against the other's and shows up as false repeatability error.
+    """
     rng = np.random.default_rng(seed)
     Bs = B[rng.choice(len(B), min(n_sub, len(B)), replace=False)]
     As = A[rng.choice(len(A), min(20000, len(A)), replace=False)]
@@ -64,10 +73,10 @@ def register(A, B, step=0.5, n_sub=1500, seed=0):
         for x in xs:
             for y in ys:
                 T0 = _T(th, (x - c[0], y - c[1]))
-                T, fit = icp2d(As, Bs, T0, iters=12)
+                T, fit = icp2d(As, Bs, T0, iters=12, rotate=rotate)
                 if best is None or fit > best[1]:
                     best = (T, fit)
-    T, fit = icp2d(A, B, best[0], iters=40, max_d=0.08)
+    T, fit = icp2d(A, B, best[0], iters=40, max_d=0.08, rotate=rotate)
     return T, fit
 
 
