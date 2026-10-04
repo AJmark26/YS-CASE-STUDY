@@ -1,0 +1,523 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ysplan/plan.schema.json",
+  "title": "ysplan plan.json",
+  "description": "Output of `python -m ysplan <capture>` at every tier. Lengths in metres, areas in square metres, plan coordinates in the gravity-aligned, Manhattan-aligned frame described by `alignment`. Every measured quantity is a `measure`: value, 1-sigma and 95% interval.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "tier",
+    "units",
+    "rooms",
+    "openings",
+    "adjacency",
+    "footprint_m2"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "tier": {
+      "enum": [
+        "lidar",
+        "video",
+        "photo"
+      ]
+    },
+    "units": {
+      "const": "m"
+    },
+    "frame": {
+      "type": "string"
+    },
+    "alignment": {
+      "type": "object",
+      "properties": {
+        "yaw_rad": {
+          "type": "number"
+        },
+        "floor_y_world": {
+          "type": "number"
+        },
+        "floor_observed": {
+          "type": "boolean",
+          "description": "false: no floor surface was seen, heights are not reported"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "capture": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "frames": {
+          "type": "integer"
+        },
+        "frames_used": {
+          "type": "integer"
+        },
+        "duration_s": {
+          "type": "number"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "rooms": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/room"
+      }
+    },
+    "openings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/opening"
+      }
+    },
+    "adjacency": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "rooms"
+        ],
+        "properties": {
+          "rooms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "via": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "opening ids between the two rooms"
+          },
+          "shared_boundary_m": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "unvisited_regions": {
+      "type": "array",
+      "description": "space seen only through a doorway, kept out of the plan"
+    },
+    "footprint_m2": {
+      "$ref": "#/$defs/measure"
+    },
+    "drift": {
+      "type": "object",
+      "description": "what drift correction did; enabled=false only in the ablation run",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "chunks": {
+          "type": "integer"
+        },
+        "loops_accepted": {
+          "type": "integer"
+        },
+        "loops_rejected": {
+          "type": "integer"
+        },
+        "loop_misalignment_cm_before": {
+          "type": "number"
+        },
+        "loop_misalignment_cm_after": {
+          "type": "number"
+        },
+        "max_correction_m": {
+          "type": "number"
+        },
+        "mean_correction_m": {
+          "type": "number"
+        }
+      }
+    },
+    "timing_s": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "damage": {
+      "$ref": "#/$defs/damage"
+    }
+  },
+  "$defs": {
+    "measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "sigma",
+        "ci95"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "sigma": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "ci95": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    },
+    "point": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "wall": {
+      "type": "object",
+      "required": [
+        "id",
+        "from",
+        "to",
+        "length_m"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^R[0-9]+-W[0-9]+$"
+        },
+        "from": {
+          "$ref": "#/$defs/point"
+        },
+        "to": {
+          "$ref": "#/$defs/point"
+        },
+        "length_m": {
+          "$ref": "#/$defs/measure"
+        },
+        "observed_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "face_points": {
+          "type": "integer"
+        },
+        "ends_observed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "room": {
+      "type": "object",
+      "required": [
+        "id",
+        "polygon",
+        "walls",
+        "floor_area_m2",
+        "ceiling_height_m"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^R[0-9]+$"
+        },
+        "polygon": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/point"
+          },
+          "minItems": 3
+        },
+        "label_point": {
+          "$ref": "#/$defs/point"
+        },
+        "walls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/wall"
+          }
+        },
+        "floor_area_m2": {
+          "$ref": "#/$defs/measure"
+        },
+        "ceiling_height_m": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/measure"
+            }
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "measured",
+                "not_observed"
+              ]
+            },
+            "lower_bound_m": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "when not_observed: the ceiling is at least this high (null if nothing above the camera was seen)"
+            },
+            "floor_reference": {
+              "type": "string"
+            },
+            "floor_offset_cm": {
+              "type": "number"
+            },
+            "ceiling_relief_cm": {
+              "type": "number"
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        },
+        "bbox_m": {
+          "$ref": "#/$defs/point"
+        },
+        "wall_observed_fraction": {
+          "type": "number"
+        },
+        "squared_by_deg": {
+          "type": "number"
+        }
+      }
+    },
+    "opening": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "axis",
+        "line",
+        "from",
+        "to",
+        "width_m",
+        "rooms"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[DOW][0-9]+$"
+        },
+        "type": {
+          "enum": [
+            "door",
+            "opening",
+            "window"
+          ]
+        },
+        "axis": {
+          "enum": [
+            "u",
+            "v"
+          ],
+          "description": "u: the wall runs along plan x at y=line; v: along plan y at x=line"
+        },
+        "line": {
+          "type": "number"
+        },
+        "from": {
+          "type": "number"
+        },
+        "to": {
+          "type": "number"
+        },
+        "width_m": {
+          "$ref": "#/$defs/measure"
+        },
+        "rooms": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "jambs_found": {
+          "type": "integer"
+        },
+        "jamb_slices": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "faces_seen": {
+          "type": "integer"
+        }
+      }
+    },
+    "damage": {
+      "type": "object",
+      "properties": {
+        "detector": {
+          "type": "string"
+        },
+        "keyframes": {
+          "type": "integer"
+        },
+        "wet_rooms": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "regions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "class",
+              "surface",
+              "area_m2"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "class": {
+                "type": "string"
+              },
+              "surface": {
+                "type": "string",
+                "description": "wall id (R1-W3), or R1-floor / R1-ceiling"
+              },
+              "room": {
+                "type": "string"
+              },
+              "surface_kind": {
+                "enum": [
+                  "wall",
+                  "floor",
+                  "ceiling"
+                ]
+              },
+              "score": {
+                "type": "number"
+              },
+              "area_m2": {
+                "$ref": "#/$defs/measure"
+              },
+              "height_range_m": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                }
+              },
+              "along_range_m": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "rule": {
+                "type": "string",
+                "description": "the concealed-damage rule that fired, e.g. CD2-wall-shared-with-wet-room"
+              },
+              "description": {
+                "type": "string"
+              },
+              "regions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "surface": {
+                "type": "string"
+              },
+              "evidence": {}
+            }
+          }
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "surface",
+              "code",
+              "quantity",
+              "unit"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "surface": {
+                "type": "string"
+              },
+              "code": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string"
+              },
+              "sigma": {
+                "type": "number"
+              },
+              "because": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "rules": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

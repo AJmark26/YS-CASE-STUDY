@@ -67,6 +67,34 @@ skipped and reported under `capture.notes` in `plan.json`.
 `scripts/make_test_capture.py` cuts new captures out of the samples (a shorter walk, one room,
 a rotated ARKit world, the older export format, a .zip) to check this before a live run.
 
+## Reproduce every number
+
+With the three sample captures unzipped under `data/` (`1a8384c3f6`, `c7d28f72c6`,
+`c00a170fe1`), these regenerate everything under `bench/` (about 30 minutes on 4 CPU cores):
+
+```
+for c in 1a8384c3f6 c7d28f72c6 c00a170fe1; do python -m ysplan data/$c -o out/${c}_lidar; done
+python -m ysplan data/1a8384c3f6 -o out/1a8384c3f6_lidar_nodrift --no-drift --no-damage
+python scripts/benchmark.py out bench                  # repeatability, openings, cross-tier, drift ablation
+python scripts/ceiling_repeat.py data/c7d28f72c6 bench/ceiling_repeat_c7d28f72c6.json --run out/c7d28f72c6_lidar
+python scripts/fixloop.py --data data --out out        # fix-loop rounds from their git tags
+```
+
+The walk-in rehearsal cuts unseen-looking captures out of the samples and scores their plans
+against the full captures' plans:
+
+```
+python scripts/make_test_capture.py data/c00a170fe1 data/walkin/t1_bedroom --start 16 --end 37 --reframe 37
+python scripts/make_test_capture.py data/c7d28f72c6 data/walkin/t2_three_rooms --start 100 --end 141 --old-format --zip
+python scripts/make_test_capture.py data/1a8384c3f6 data/walkin/t3_bedroom2 --start 35 --end 54 --reframe 200
+python scripts/make_test_capture.py data/c7d28f72c6 data/walkin/t4_ceiling_only --start 140 --end 172 --old-format
+for t in t1_bedroom t2_three_rooms.zip t3_bedroom2 t4_ceiling_only; do python -m ysplan data/walkin/$t -o out/walkin/${t%.zip}; done
+python scripts/walkin_check.py out/walkin/t1_bedroom:out/c00a170fe1_lidar out/walkin/t2_three_rooms:out/c7d28f72c6_lidar \
+    out/walkin/t3_bedroom2:out/1a8384c3f6_lidar out/walkin/t4_ceiling_only:out/c7d28f72c6_lidar --json bench/walkin.json
+```
+
+Every `plan.json` validates against [docs/plan.schema.json](docs/plan.schema.json).
+
 ## How it works (LiDAR tier)
 
 1. **Load** the Stray Scanner capture (`ysplan/io_stray.py`): ARKit poses, depth with
