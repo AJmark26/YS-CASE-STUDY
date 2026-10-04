@@ -48,6 +48,16 @@ python -m ysplan data/<capture_id> --tier video        # RGB video plus ARKit po
 python scripts/benchmark.py                            # repeatability, cross-tier, ablation
 ```
 
+The video tier caches its keyframe depth in `<out>/video_depths.npz`; with that file present it
+needs no learned model. The photo tier takes one folder per room. Test sets are cut from the
+captures' videos, with each room's stills overlapping as the protocol asks:
+
+```
+python scripts/make_photo_set_protocol.py data/<capture_id> out/<capture_id>_lidar/plan.json photos/<capture_id>
+python -m ysplan photos/<capture_id> --tier photo -o out/<capture_id>_photo
+python scripts/eval_photo.py out/<capture_id>_photo out/<capture_id>_lidar   # room areas and sides vs LiDAR
+```
+
 On 4 CPU cores with no GPU, a one-room LiDAR capture runs in under 2 minutes. A 115 s
 whole-apartment walk takes about 1 minute for the plan and 6 minutes with damage detection
 (`--no-damage` skips it); the 215 s walk takes 2 and 12 minutes (docs/benchmark_report.md, Timing).
@@ -84,6 +94,17 @@ skipped and reported under `capture.notes` in `plan.json`.
 `scripts/make_test_capture.py` cuts new captures out of the samples (a shorter walk, one room,
 a rotated ARKit world, the older export format, a .zip) to check this before a live run.
 
+**Video tier** (an iPhone without LiDAR): a recording in the same Stray Scanner layout but with
+no `depth/` folder is detected as video, and the same one command runs it. It needs the learned
+models (Setup); without them it falls back to a monocular depth model, which on the samples
+recovers no room. A plain clip with no ARKit poses (`--tier video` on an `.mp4`, for example from
+an Android phone) runs, but is experimental: it recovers no room yet.
+
+**Photo tier** (any phone): one folder per room, each holding 2 to 8 overlapping stills taken
+as [docs/capture_protocol.md](docs/capture_protocol.md) describes, then
+`python -m ysplan path/to/photos --tier photo`. Each room is measured on its own; the rooms are
+laid out side by side, not stitched into one plan.
+
 ## Reproduce every number
 
 With the three sample captures unzipped under `data/` (`1a8384c3f6`, `c7d28f72c6`,
@@ -92,7 +113,13 @@ With the three sample captures unzipped under `data/` (`1a8384c3f6`, `c7d28f72c6
 ```
 for c in 1a8384c3f6 c7d28f72c6 c00a170fe1; do python -m ysplan data/$c -o out/${c}_lidar; done
 python -m ysplan data/1a8384c3f6 -o out/1a8384c3f6_lidar_nodrift --no-drift --no-damage
-python scripts/benchmark.py out bench                  # repeatability, openings, cross-tier, drift ablation
+for c in 1a8384c3f6 c00a170fe1; do                     # lower tiers (learned models, or cached depth)
+  python -m ysplan data/$c --tier video -o out/${c}_video
+  python scripts/make_photo_set_protocol.py data/$c out/${c}_lidar/plan.json photos/$c
+  python -m ysplan photos/$c --tier photo -o out/${c}_photo
+  python scripts/eval_photo.py out/${c}_photo out/${c}_lidar > bench/photo_vs_lidar_$c.json
+done
+python scripts/benchmark.py out bench                  # repeatability, openings, video vs LiDAR, drift ablation
 python scripts/ceiling_repeat.py data/c7d28f72c6 bench/ceiling_repeat_c7d28f72c6.json --run out/c7d28f72c6_lidar
 python scripts/fixloop.py --data data --out out        # fix-loop rounds, from the commits before and after each fix
 python scripts/validate_plans.py out                   # every plan.json against docs/plan.schema.json
@@ -153,5 +180,6 @@ loop closures and the misalignment before and after correction.
 | Tier | State |
 |---|---|
 | LiDAR | Runs end to end on all three sample captures |
-| Video | Runs (monocular depth scaled by triangulation with ARKit poses); accuracy below the gate |
-| Photo | In progress |
+| Video, ARKit poses | Runs (MapAnything depth); 13 of 19 walls within 3% of LiDAR, but rooms fragment and the footprint comes out 28 to 42% short; ceilings withheld |
+| Video, no poses | Experimental: runs, recovers no room |
+| Photo | Runs room by room (MapAnything, MoGe-2 scale); floor area within 8% of LiDAR on 2 of 8 rooms; rooms not stitched |

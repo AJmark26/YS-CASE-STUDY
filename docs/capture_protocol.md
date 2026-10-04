@@ -8,7 +8,9 @@ to room without stopping is what puts every room in the same frame.
 | Device | Tier | Record with | What the pipeline gets |
 |---|---|---|---|
 | iPhone 12 Pro or later Pro, iPad Pro 2020 or later | LiDAR | Stray Scanner | depth, confidence, ARKit poses, video |
-| Other iPhones and Android phones | video or photo | the camera app | video or photos only, no depth |
+| Other iPhones | video | an app that saves ARKit poses with the video, in Stray Scanner's layout without `depth/` | ARKit poses, video |
+| Any phone | photo | the camera app | 2 to 8 stills per room, one folder per room |
+| Android phones, or any clip without poses | video without poses (experimental) | the camera app | video only |
 
 The LiDAR tier is the reference. The video and photo tiers are documented with their own
 commands in the README.
@@ -43,3 +45,32 @@ python -m ysplan path/to/recording.zip
 
 The loader accepts the current export (per-frame intrinsics in `odometry.csv`, PNG depth) and
 the older one (9-column `odometry.csv`, `.npy` depth).
+
+## Video walkthrough (iPhone without LiDAR)
+
+Walk exactly as for LiDAR. Depth comes from a learned model looking at the video, so three
+things matter more:
+
+| Do this | Why |
+|---|---|
+| Keep the floor-wall line in view most of the time, phone tilted 10 to 20 degrees down | The floor fixes gravity and the room's extent; predicted depth on a blank wall alone drifts |
+| Walk slower than for LiDAR, and turn slowly | One frame in 40 gets a depth map; motion blur ruins it |
+| Avoid filling the view with a single blank wall | The model has nothing to judge distance by |
+
+## Photos (any phone)
+
+One folder per room, named after the room, with 4 to 8 photos. The only photo sets tested are
+stills cut from the sample walkthrough videos, which do not follow this protocol: in two rooms
+(8 and 4 stills) floor area came within 1% of LiDAR, and in the other six (1 to 7 stills) it came
+out 39 to 81% short in five and 16% long in one (`docs/benchmark_report.md`, Tiers against LiDAR).
+
+| Do this | Why |
+|---|---|
+| Stand in a corner and photograph the opposite corner, then work round the room | Each wall is seen from across the room, so its whole length is in view |
+| Hold the phone at chest height, landscape, tilted slightly down so the floor-wall line is in every photo | The floor sets gravity and the room's extent; a room whose floor edge was not seen comes out too small |
+| Let each photo share a third to three quarters of its view with one already taken | The photos are placed relative to each other by what they share |
+| Take one photo straight through each doorway, from both sides | This is what rooms will be stitched by |
+| Do not edit, crop or zoom the photos; send the originals | The lens focal length is read from the photo's EXIF data |
+
+Run `python -m ysplan path/to/photos --tier photo`. Each room is measured on its own; the rooms
+are not yet stitched into one plan.

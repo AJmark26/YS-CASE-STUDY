@@ -1,7 +1,5 @@
 # Phone capture to dimensioned floor plan: technical report
 
-<!-- Numbers marked {{...}} are filled from bench/ when the last runs land. -->
-
 ## 1. What runs, and what the numbers are
 
 `python -m ysplan <capture>` turns one phone capture into `plan.json` and `plan.png`. The
@@ -43,7 +41,41 @@ measured; dashed ones are inferred where the wall was not seen. Grey: fused wall
 
 ## 3. Tiers and device matrix
 
-{{tier design and device matrix from the photo and video work}}
+All tiers end in the geometry stages above and write the same `plan.json`; they differ in
+where depth and camera poses come from.
+
+| Tier | Poses | Depth | Learned models |
+|---|---|---|---|
+| LiDAR | ARKit | LiDAR | none |
+| Video (iPhone without LiDAR) | ARKit | MapAnything on every 40th frame, given the ARKit poses and intrinsics, in windows of 8 | MapAnything |
+| Photo (2 to 8 stills per room) | MapAnything on each room's folder, no poses given | MapAnything; metric scale from MoGe-2 single-photo depth | MapAnything, MoGe-2 |
+| Video without poses (experimental) | MapAnything windows chained by a shared frame | same, each window scaled by MoGe-2 | MapAnything, MoGe-2 |
+
+Classical structure from motion found too few matches on the samples' white walls, and
+monocular depth rescaled frame by frame smeared the walls so badly that no room was recovered.
+MapAnything returns poses and metric depth that agree across views in one pass; given the
+ARKit poses its depth is within 6 to 7% of LiDAR per keyframe on the samples. The default
+checkpoint is the research one (CC-BY-NC, non-commercial); the Apache-2.0 checkpoint is one
+setting away (`YS_MAPANYTHING`) but measured 27 to 32% short on the same frames. On 4 CPU cores
+the video depth takes 7.5 min for the 37 s walk and 22.6 min for the 115 s walk, and is cached;
+the geometry then takes under 75 s. Without the learned models, plain clips and photo sets stop
+with an install message, and posed video falls back to a monocular model that recovered no room
+on the bedroom cut.
+
+The photo tier gets gravity from the floor plane, and each room folder claims the floor its own
+photos' rays cross. Its rooms are laid out side by side: stitching them at the doorway photos
+is not finished, so the photo tier has no whole-home plan.
+
+| Device | Tier | Measured on the samples (consistency with the LiDAR tier) |
+|---|---|---|
+| iPhone 12 Pro or later Pro, iPad Pro 2020 or later | LiDAR | same wall in two captures: median 1.88 cm, 37.9% within 1 cm or 0.5% |
+| Other iPhones, with an app saving ARKit poses | video | walls within 3% of LiDAR: 13 of 19 (median 2.3%); rooms fragment, footprint 28 to 42% short; no ceilings |
+| Any phone, stills | photo | floor area within 8% of LiDAR on 2 of 8 rooms (both within 1%), 39 to 81% short on five; not stitched |
+| Android, or any clip without poses | video without poses | runs; recovers no room (the chained windows disagree in heading) |
+
+The video inputs are the sample captures with their depth deleted, and the photo inputs are
+stills cut from their videos, so neither is an independent capture. Whether Stray Scanner itself
+records on an iPhone without LiDAR was not tested.
 
 ## 4. Drift
 
@@ -78,7 +110,7 @@ Each measurement carries a 1-sigma built from these terms (`ysplan/measure.py`,
 | Floor area | perimeter times mean face sigma | 5% of the area |
 | Ceiling height | ceiling level, floor level, 0.5 cm sensor, ceiling relief across the room | 1.1 cm; relief (0.5 to 1.6 cm) is the largest term |
 | Opening width | per jamb: spread over height slices / sqrt(slices), with 0.5 cm; both jambs; spread of the two faces of a partition | 1.0 cm |
-| Video and photo tiers | same terms on predicted depth, plus a tier factor | {{tier sigma}} |
+| Video and photo tiers | same terms on predicted depth; video walls and openings times 5 (section 6); photo area adds twice the 5% scale spread | video wall 5.4 cm; photo area 10 to 20% of the area |
 
 ## 6. Calibration
 
@@ -91,7 +123,8 @@ the difference of two measurements falls inside their combined interval.
 | Same ceiling, two halves of a capture (6 rooms) | 6 of 6 |
 | Same opening, two captures (3 matches, all different objects) | 0 of 3 |
 | Walk-in rehearsal walls against the full capture (10 walls) | 6 of 10 |
-| {{tier calibration rows}} | |
+| Video walls against LiDAR (19 walls) | 18 of 19 with the tier factor of 5, fitted on these walls (13 of 19 without) |
+| Photo room areas against LiDAR (8 rooms) | 3 of 8: unseen floor is not in the interval |
 
 For measurement noise the wall intervals are wide enough, if anything wide: with the residual
 loop disagreement they carry, every difference falls inside (median combined 1-sigma 3.6 cm
@@ -109,8 +142,8 @@ those errors.
 | Ceiling spread 1 cm | 6 rooms, two halves | 5 of 6; median 0.57 cm | fail (1 room) |
 | Ceiling within 1.5 cm of truth | | needs ground truth | not measured |
 | Drift accountability | ablation | section 4 | met |
-| Video walls within 3% | against LiDAR | {{video_gate}} | {{video_status}} |
-| Photo walls within 8%, stitched | against LiDAR | {{photo_gate}} | {{photo_status}} |
+| Video walls within 3% | 19 walls against LiDAR | 68%; median 2.27% | fail |
+| Photo walls within 8%, stitched | 8 rooms against LiDAR | area within 8% on 2 of 8; not stitched | fail |
 | Head-to-head against a consumer app | | needs the rooms and a LiDAR iPhone | not met |
 
 Timing, one run at a time on 4 CPU cores without a GPU: a one-room capture runs in 25 to 80 s;
@@ -171,3 +204,7 @@ Known failure modes, worst first:
 7. **Damage.** The built-in detector is classical (colour departure from the surface): on
    synthetic stains painted into real keyframes it found both classes (area within 21% and 5%,
    inside the intervals) and 3 false regions. A learned detector plugs into the same interface.
+8. **Lower-tier outlines.** Video walls land within a few centimetres, but its rooms fragment and
+   its footprint is 28 to 42% short. A photo room is measured as the part its stills saw, with an
+   interval that does not cover the unseen part: 3 of 8 cover LiDAR. These are confident wrong
+   answers; reporting such rooms as lower bounds is the next fix.

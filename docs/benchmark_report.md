@@ -39,8 +39,8 @@ A bias that both measurements share is invisible to all of these.
 | Ceiling height: spread within 1 cm per room | 6 rooms, two halves of the ceiling capture | 5 of 6 rooms; median 0.57 cm, largest 1.68 cm | fail (one room) |
 | Ceiling height within 1.5 cm of truth | | not measurable without ground truth | not measured |
 | Drift accountability | ablation on the whole-apartment capture | loop misalignment 16.4 cm to 2.3 cm; footprint and rooms below | met |
-| Video tier: walls within 3% | against LiDAR, same capture | {{video_gate}} | {{video_status}} |
-| Photo tier: walls within 8%, stitched plan | against LiDAR, same capture | {{photo_gate}} | {{photo_status}} |
+| Video tier: walls within 3% | 19 walls over 2 captures, against LiDAR | 68% (13 of 19); median 2.27% (3.2 cm); 18 of 19 inside the 95% interval | fail |
+| Photo tier: walls within 8%, stitched plan | 8 rooms over 2 captures, against LiDAR | floor area within 8% on 2 of 8 rooms, room sides on 3 of 16; not stitched | fail |
 | Head-to-head against a consumer app | | not run: needs the rooms and a LiDAR iPhone | not met |
 
 The ceiling result is "repeatable but bias unknown": the halves agree, and nothing here can
@@ -202,4 +202,78 @@ capture finishes in well under 2 minutes.
 
 ## Tiers against LiDAR
 
-{{video and photo tier tables from the photo and video work}}
+Both lower tiers are scored against the LiDAR plan of the same capture, so they inherit its
+errors: the numbers say how far a tier lands from what LiDAR saw. Their inputs are made from the
+samples (video: the capture with its depth deleted; photo: stills cut from its video), so they
+are not independent captures. The ceiling capture has no video or photo run (its video depth
+would take about 40 minutes on CPU).
+
+### Video tier (ARKit poses, MapAnything depth)
+
+Walls are compared as in the repeatability check: each LiDAR room outline, measured in both
+tiers' 3D points after a per-room alignment (`compare_runs`, `video_vs_lidar_*` in
+`bench/benchmark.json`).
+
+| Capture | Rooms, video (LiDAR) | Footprint, video vs LiDAR | Walls | Within 3% | Median difference | Inside 95% interval |
+|---|---|---|---|---|---|---|
+| `c00a170fe1` single_room | 1 (2) | 12.1 vs 21.0 m² | 4 | 2 | 2.75% (3.5 cm) | 4 of 4 |
+| `1a8384c3f6` floor only | 7 (6) | 37.0 vs 51.1 m² | 15 | 11 | 2.27% (3.2 cm) | 14 of 15 |
+| **All** | | | **19** | **13 (68%)** | **2.27% (3.2 cm)** | **18 of 19** |
+
+- Where the video tier sees a wall, it measures it to a few centimetres: 15 of 19 walls within
+  3.5%. The six misses include two 0.5 m walls off by 9 and 10 cm (18 and 20%) and a 1.05 m
+  wall off by 8.7 cm.
+- Its room outlines are the weak point. Rooms fragment or merge (one room for the bedroom and
+  bathroom; seven for six), and the footprint comes out 28 to 42% short, most likely because
+  predicted depth is too noisy for the ray carving to close rooms (inferred, not traced). Walls
+  scored on the LiDAR outline do not show this, so the footprint is reported beside them.
+- Intervals: the wall error model is the LiDAR one computed on the video points, multiplied by a
+  tier factor of 5 (`measure.TIER_SCALE`). At 1 only 13 of 19 differences fall inside the combined
+  interval; 5 is the smallest whole factor that covers 18 of 19. It is fitted on these same 19
+  walls, so it is not an independent check. Median video wall 1-sigma: 5.4 cm.
+- Ceilings are withheld at this tier: on the floor-only capture it reported a 2.07 m ceiling in
+  a room whose LiDAR never saw above 1.86 m, and no sample has both a ceiling sweep and a video
+  run to check it against.
+- Without the learned models the tier falls back to monocular depth (Depth Anything V2 small,
+  scaled by triangulating tracked points with the ARKit poses), which recovered no room on the
+  21 s bedroom cut. A plain clip without poses runs MapAnything in chained windows and also
+  recovers no room; it is marked experimental.
+
+While the tier was being built, a 2D comparison (wall points flattened to the floor, one
+alignment for the whole plan) gave 7 of 7 and 14 of 20 walls within 3% on the same captures.
+The table above uses the stricter 3D, per-room method of the LiDAR repeatability check; on the
+same outputs the 2D method gives 6 of 7 for `c00a170fe1`.
+
+### Photo tier (2 to 8 stills per room, no poses)
+
+Each room folder is scored on its own against the LiDAR room it was cut from, on floor area and
+on the two sides of its bounding box (`scripts/eval_photo.py`, `bench/photo_vs_lidar_*.json`).
+Wall-by-wall scoring found no wall to compare: once each photo room is placed in its LiDAR
+room, every wall has an end the stills did not see.
+
+| Room | Stills | Area, photo vs LiDAR | Area difference | Interval covers LiDAR | Sides, photo vs LiDAR |
+|---|---|---|---|---|---|
+| floor only R3 | 8 | 8.50 vs 8.41 m² | +1.0% | yes | 2.89 × 2.92 vs 2.89 × 3.12 m |
+| floor only R6 | 4 | 2.71 vs 2.69 m² | +0.7% | yes | 1.60 × 1.69 vs 1.40 × 2.09 m |
+| floor only R2 | 3 | 12.86 vs 11.07 m² | +16% | yes | 2.01 × 6.44 vs 3.83 × 3.95 m |
+| floor only R4 | 3 | 4.80 vs 7.89 m² | -39% | no | 1.99 × 2.42 vs 2.97 × 3.24 m |
+| single_room R1 | 7 | 6.80 vs 14.13 m² | -52% | no | 2.36 × 2.88 vs 2.94 × 7.84 m |
+| floor only R5 | 1 | 1.49 vs 4.24 m² | -65% | no | 0.76 × 1.97 vs 2.00 × 2.44 m |
+| floor only R1 | 3 | 5.54 vs 16.83 m² | -67% | no | 1.29 × 5.14 vs 4.85 × 4.99 m |
+| single_room R2 | 2 | 1.33 vs 6.89 m² | -81% | no | 1.16 × 1.22 vs 2.92 × 3.07 m |
+
+- Two rooms land within 1% on area; only R3 also has both sides within 8%. In the other six the
+  stills see part of the room, and the room is measured as the part they saw, so it comes out
+  short. The stills are frames of a walkthrough that rarely looks down, not photos taken to the
+  protocol.
+- The intervals carry the measurement terms and the scale spread between MoGe-2 and the
+  multi-view reconstruction (5% of scale, doubled for area). They do not model unseen floor,
+  which is the dominant error: 3 of 8 cover LiDAR. These are confident wrong answers, and the
+  fix (report a room whose outline rests on unseen floor as a lower bound) is not built.
+- Rooms are laid out side by side, not stitched, so there is no photo-tier whole-home plan.
+- MapAnything and MoGe-2 take 18 s to 200 s per room on CPU (9 minutes for the six apartment
+  rooms); the reconstruction is cached and the geometry then takes seconds.
+- An earlier floor finder change (floor must cover 2 m² at least 1.1 m below the camera) shrank
+  the apartment's photo rooms by 21 to 58%: their stills see under 0.3 m² of floor, so the floor
+  was guessed and furniture sides counted as walls. The photo tier keeps the older finder (the
+  densest low slab); its heights are not reported anyway.
