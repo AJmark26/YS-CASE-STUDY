@@ -39,7 +39,18 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar"):
     free, walls = rooms.free_space(G, G.to_cell(traj), c_low, wall_count=8 if tier == "lidar" else "p70")
     labels = rooms.segment(free & ~rooms.close_doors(walls))
     polys, _, _ = layout.room_polygons(U, G, labels)
-    log(f"[{tier}] {len(polys)} rooms")
+    # A region the camera never entered was only seen through a doorway: report it, but keep it
+    # out of the plan (its far walls are unobserved, so its dimensions would be guesses).
+    from shapely import contains_xy
+    unvisited = []
+    for k in list(polys):
+        inside = contains_xy(polys[k], traj[:, 0], traj[:, 1]).sum()
+        if inside < 30:
+            unvisited.append({"area_m2": round(polys[k].area, 2),
+                              "polygon": [[round(x, 3), round(y, 3)] for x, y in list(polys[k].exterior.coords)[:-1]]})
+            del polys[k]
+    polys = {i: p for i, p in enumerate(sorted(polys.values(), key=lambda g: -g.area), 1)}
+    log(f"[{tier}] {len(polys)} rooms ({len(unvisited)} regions seen only through doorways)")
     sigma_drift = drift_rep.get("loop_misalignment_cm_after", 0.0) / 100.0 if drift else 0.0
     out_rooms, per_room_open = [], {}
     for k, poly in polys.items():
@@ -78,6 +89,7 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar"):
         "rooms": out_rooms,
         "openings": ops,
         "adjacency": adjacency,
+        "unvisited_regions": unvisited,
         "footprint_m2": measure._val(sum(r["floor_area_m2"]["value"] for r in out_rooms),
                                      float(np.sqrt(sum(r["floor_area_m2"]["sigma"] ** 2 for r in out_rooms)))),
         "drift": drift_rep,

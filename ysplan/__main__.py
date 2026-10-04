@@ -35,6 +35,8 @@ def main(argv=None):
     else:
         raise SystemExit(f"tier {tier} not implemented yet")
     (out / "plan.json").write_text(json.dumps(result, indent=1))
+    import numpy as np
+    np.savez_compressed(out / "wall_points_plan.npz", xy=cloud.astype(np.float32))
     from . import render
     render.plan(result, out / "plan.png", title=f"{a.capture.name} ({tier} tier)", cloud=cloud)
     print(f"wrote {out / 'plan.json'} and {out / 'plan.png'}")

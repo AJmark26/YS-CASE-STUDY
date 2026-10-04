@@ -119,3 +119,4 @@ def segment(free, door_half_m=0.48, min_room_m2=1.2):
     for k, i in enumerate([i for i in np.unique(lab) if i > 0], 1):
         out[lab == i] = k
     return out
+
