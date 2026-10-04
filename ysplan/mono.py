@@ -112,3 +112,20 @@ def read_frames(video, wanted, size=None):
         i += 1
     return out
 
+
+
+def iter_frames(video, wanted, size=None):
+    """Yield (index, frame) for `wanted` indices in order, decoding sequentially, one at a time."""
+    wanted = sorted(set(int(w) for w in wanted))
+    vc, i, k = cv2.VideoCapture(str(video)), 0, 0
+    while k < len(wanted):
+        if i == wanted[k]:
+            ok, im = vc.read()
+            if not ok:
+                break
+            yield i, (cv2.resize(im, size, interpolation=cv2.INTER_AREA) if size else im)
+            k += 1
+        elif not vc.grab():
+            break
+        i += 1
+    vc.release()

@@ -1,0 +1,205 @@
+{
+ "capture": "c00a170fe1",
+ "clean_run_regions": 5,
+ "clean_run_area_m2": 0.1229,
+ "stains": [
+  {
+   "class": "water_stain",
+   "surface": "R2-W6",
+   "area_m2": 0.1043,
+   "along_range_m": [
+    2.477,
+    2.883
+   ],
+   "height_range_m": [
+    1.185,
+    1.593
+   ],
+   "found": true,
+   "classes_found": [
+    "dark_spot",
+    "water_stain"
+   ],
+   "area_found_m2": 0.1266,
+   "area_err_pct": 21.4,
+   "inside_ci95": true,
+   "regions": [
+    "DMG5",
+    "DMG6",
+    "DMG7"
+   ]
+  },
+  {
+   "class": "dark_spot",
+   "surface": "R1-W3",
+   "area_m2": 0.039,
+   "along_range_m": [
+    0.676,
+    0.916
+   ],
+   "height_range_m": [
+    1.271,
+    1.531
+   ],
+   "found": true,
+   "classes_found": [
+    "dark_spot"
+   ],
+   "area_found_m2": 0.0369,
+   "area_err_pct": -5.4,
+   "inside_ci95": true,
+   "regions": [
+    "DMG1"
+   ]
+  }
+ ],
+ "false_positive_regions": 3,
+ "false_positive_area_m2": 0.0711,
+ "flags": [],
+ "scope": [
+  {
+   "id": "S1",
+   "surface": "R1-W3",
+   "code": "MOLD-TREAT",
+   "description": "Biocide wash of the affected area plus a 0.3 m margin",
+   "quantity": 0.267,
+   "unit": "m2",
+   "sigma": 0.011,
+   "because": [
+    "DMG1"
+   ]
+  },
+  {
+   "id": "S2",
+   "surface": "R1-W3",
+   "code": "STAIN-PRIME",
+   "description": "Stain-blocking primer on the affected area",
+   "quantity": 0.037,
+   "unit": "m2",
+   "sigma": 0.011,
+   "because": [
+    "DMG1"
+   ]
+  },
+  {
+   "id": "S3",
+   "surface": "R1-W3",
+   "code": "PAINT",
+   "description": "Repaint R1-W3 (whole face for an even finish)",
+   "quantity": 2.798,
+   "unit": "m2",
+   "sigma": 0.056,
+   "because": [
+    "DMG1"
+   ]
+  },
+  {
+   "id": "S4",
+   "surface": "R1-W5",
+   "code": "MOLD-TREAT",
+   "description": "Biocide wash of the affected area plus a 0.3 m margin",
+   "quantity": 0.288,
+   "unit": "m2",
+   "sigma": 0.021,
+   "because": [
+    "DMG2"
+   ]
+  },
+  {
+   "id": "S5",
+   "surface": "R1-W5",
+   "code": "STAIN-PRIME",
+   "description": "Stain-blocking primer on the affected area",
+   "quantity": 0.042,
+   "unit": "m2",
+   "sigma": 0.021,
+   "because": [
+    "DMG2"
+   ]
+  },
+  {
+   "id": "S6",
+   "surface": "R1-W5",
+   "code": "PAINT",
+   "description": "Repaint R1-W5 (whole face for an even finish)",
+   "quantity": 4.122,
+   "unit": "m2",
+   "sigma": 0.082,
+   "because": [
+    "DMG2"
+   ]
+  },
+  {
+   "id": "S7",
+   "surface": "R1-W5",
+   "code": "MOLD-TREAT",
+   "description": "Biocide wash of the affected area plus a 0.3 m margin",
+   "quantity": 0.161,
+   "unit": "m2",
+   "sigma": 0.01,
+   "because": [
+    "DMG3"
+   ]
+  },
+  {
+   "id": "S8",
+   "surface": "R1-W5",
+   "code": "MOLD-TREAT",
+   "description": "Biocide wash of the affected area plus a 0.3 m margin",
+   "quantity": 0.157,
+   "unit": "m2",
+   "sigma": 0.008,
+   "because": [
+    "DMG4"
+   ]
+  },
+  {
+   "id": "S9",
+   "surface": "R2-W6",
+   "code": "STAIN-PRIME",
+   "description": "Stain-blocking primer on the affected area",
+   "quantity": 0.075,
+   "unit": "m2",
+   "sigma": 0.016,
+   "because": [
+    "DMG5"
+   ]
+  },
+  {
+   "id": "S10",
+   "surface": "R2-W6",
+   "code": "PAINT",
+   "description": "Repaint R2-W6 (whole face for an even finish)",
+   "quantity": 5.041,
+   "unit": "m2",
+   "sigma": 0.101,
+   "because": [
+    "DMG5"
+   ]
+  },
+  {
+   "id": "S11",
+   "surface": "R2-W6",
+   "code": "MOLD-TREAT",
+   "description": "Biocide wash of the affected area plus a 0.3 m margin",
+   "quantity": 0.215,
+   "unit": "m2",
+   "sigma": 0.011,
+   "because": [
+    "DMG6"
+   ]
+  },
+  {
+   "id": "S12",
+   "surface": "R2-W6",
+   "code": "MOLD-TREAT",
+   "description": "Biocide wash of the affected area plus a 0.3 m margin",
+   "quantity": 0.223,
+   "unit": "m2",
+   "sigma": 0.011,
+   "because": [
+    "DMG7"
+   ]
+  }
+ ]
+}

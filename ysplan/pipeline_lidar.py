@@ -102,6 +102,7 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high
     }
     m = (U[:, 1] > 0.3) & (U[:, 1] < 1.9)
     cloud = U[m][:, [0, 2]][::7]
+    run.poses = poses                                # drift-corrected, for later stages (damage)
     return result, cloud, U
 
 
