@@ -1,7 +1,8 @@
 """Benchmark: repeatability, cross-tier accuracy and drift ablation, from pipeline outputs.
 
 There is no tape/laser ground truth for the provided sample captures, so:
-  - repeatability compares every pair of LiDAR captures over the rooms they share,
+  - repeatability compares every pair of LiDAR captures over the rooms they share, for wall
+    lengths and for opening widths (with missed and phantom openings counted),
   - video/photo accuracy uses the LiDAR tier of the same capture as the reference.
 Run B is placed in run A's plan frame (90 deg rotations plus translation, refined per room).
 Both runs' fused clouds are then measured with the pipeline's own measure.walls() on run A's
@@ -16,7 +17,8 @@ from pathlib import Path
 
 import numpy as np
 from shapely import contains_xy
-from shapely.geometry import Polygon
+from shapely.geometry import Point, Polygon
+from shapely.ops import unary_union
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -79,6 +81,61 @@ def compare_runs(dir_a, dir_b, min_cover=0.6, min_len=0.5, min_obs=0.3, same_cap
     return {"registration_fit": round(fit, 3), "rooms": rooms, "walls": rows}
 
 
+def _opening_ends(o):
+    a, b = (o["from"], o["line"]), (o["to"], o["line"])
+    if o["axis"] == "v":
+        a, b = (o["line"], o["from"]), (o["line"], o["to"])
+    return np.array([a, b], float)
+
+
+def compare_openings(dir_a, dir_b, match_m=0.35, gate_cm=2.0):
+    """Openings found in both runs, over the part of the home both runs cover.
+
+    Run B is placed in run A's frame as in compare_runs. An opening of either run whose centre
+    lies inside the other run's rooms (grown by 30 cm, so doors on the boundary count) should
+    have been found by both; it is matched to the other run's nearest opening on a parallel wall
+    with its centre within `match_m`. Unmatched ones count as misses, as the gate counts missed
+    and phantom openings."""
+    A, A_xy, _ = load(dir_a)
+    B, B_xy, _ = load(dir_b)
+    T, _ = rp.register(A_xy, B_xy)
+    cov_a = unary_union([Polygon(r["polygon"]).buffer(0.3) for r in A["rooms"]])
+    cov_b = unary_union([Polygon(rp.apply(T, np.array(r["polygon"]))).buffer(0.3) for r in B["rooms"]])
+    oa = [(o, _opening_ends(o)) for o in A["openings"]]
+    ob = [(o, rp.apply(T, _opening_ends(o))) for o in B["openings"]]
+    oa = [(o, e) for o, e in oa if cov_b.contains(Point(e.mean(0)))]
+    ob = [(o, e) for o, e in ob if cov_a.contains(Point(e.mean(0)))]
+    used, rows, missed = set(), [], []
+    for o, e in oa:
+        d = e[1] - e[0]
+        best, bd = None, match_m
+        for j, (q, f) in enumerate(ob):
+            g = f[1] - f[0]
+            if j in used or abs(abs(np.dot(d, g)) / (np.linalg.norm(d) * np.linalg.norm(g) + 1e-9) - 1) > 0.05:
+                continue
+            dist = np.linalg.norm(e.mean(0) - f.mean(0))
+            if dist < bd:
+                best, bd = j, dist
+        if best is None:
+            missed.append({"run": "A", "id": o["id"], "type": o["type"], "width_m": o["width_m"]["value"]})
+            continue
+        used.add(best)
+        q = ob[best][0]
+        wa, wb = o["width_m"]["value"], q["width_m"]["value"]
+        rows.append({"id_ref": o["id"], "id_test": q["id"], "type_ref": o["type"], "type_test": q["type"],
+                     "width_ref": wa, "width_test": wb, "diff_cm": round((wb - wa) * 100, 2),
+                     "inside_ci95": bool(abs(wb - wa) <= 1.96 * np.hypot(o["width_m"]["sigma"], q["width_m"]["sigma"])),
+                     "centre_offset_cm": round(bd * 100, 1)})
+    missed += [{"run": "B", "id": q["id"], "type": q["type"], "width_m": q["width_m"]["value"]}
+               for j, (q, _) in enumerate(ob) if j not in used]
+    n = len(rows) + len(missed)
+    ok = sum(abs(r["diff_cm"]) <= gate_cm for r in rows)
+    return {"matched": rows, "unmatched": missed, "n_openings": n,
+            "pass_rate": round(ok / n, 3) if n else None,
+            "median_abs_diff_cm": round(float(np.median([abs(r["diff_cm"]) for r in rows])), 2) if rows else None,
+            "within_ci95": round(float(np.mean([r["inside_ci95"] for r in rows])), 3) if rows else None}
+
+
 def summary(rows, ok):
     return {"n_walls": len(rows),
             "pass_rate": round(float(np.mean([ok(x) for x in rows])), 3) if rows else None,
@@ -106,6 +163,21 @@ def main(out_root="out", bench_dir="bench"):
             pairs[f"{a}~{b}"] = dict({k: v for k, v in r.items() if k != "walls"}, **summary(r["walls"], rep_ok))
             walls += r["walls"]
     res["repeatability_lidar"] = dict(summary(walls, rep_ok), gate="|diff| <= 1 cm or 0.5%", pairs=pairs, walls=walls)
+    # openings: same opening in two captures within 2 cm; a miss in either capture counts as a failure
+    op = {}
+    for i, a in enumerate(caps):
+        for b in caps[i + 1:]:
+            op[f"{a}~{b}"] = compare_openings(out_root / f"{a}_lidar", out_root / f"{b}_lidar")
+    n = sum(v["n_openings"] for v in op.values())
+    diffs = [abs(r["diff_cm"]) for v in op.values() for r in v["matched"]]
+    res["openings_repeatability_lidar"] = {
+        "gate": "|width diff| <= 2 cm on >= 85% of openings; missed or phantom openings count as misses",
+        "n_openings": n, "matched": len(diffs),
+        "pass_rate": round(sum(d <= 2.0 for d in diffs) / n, 3) if n else None,
+        "matched_within_2cm": round(float(np.mean(np.array(diffs) <= 2.0)), 3) if diffs else None,
+        "median_abs_diff_cm": round(float(np.median(diffs)), 2) if diffs else None,
+        "within_ci95": round(float(np.mean([r["inside_ci95"] for v in op.values() for r in v["matched"]])), 3) if diffs else None,
+        "pairs": op}
     # cross-tier: video/photo vs LiDAR on the same capture
     for cid in caps:
         for tier, gate in (("video", 3.0), ("photo", 8.0)):
