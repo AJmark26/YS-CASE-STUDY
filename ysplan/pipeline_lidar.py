@@ -31,8 +31,8 @@ def run(capture_dir, drift=True, step=4, log=print):
     t = poses[frames, :3, 3]
     c, s = np.cos(yaw), np.sin(yaw)
     traj = np.stack([t[:, 0] * c + t[:, 2] * s, -t[:, 0] * s + t[:, 2] * c], 1)
-    free, _ = rooms.free_space(G, G.to_cell(traj), c_low)
-    labels = rooms.segment(free)
+    free, walls = rooms.free_space(G, G.to_cell(traj), c_low)
+    labels = rooms.segment(free & ~rooms.close_doors(walls))
     polys, _, _ = layout.room_polygons(U, G, labels)
     log(f"[lidar] {len(polys)} rooms")
     sigma_drift = drift_rep.get("loop_misalignment_cm_after", 0.0) / 100.0 if drift else 0.0

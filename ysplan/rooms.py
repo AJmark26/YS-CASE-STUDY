@@ -61,6 +61,23 @@ def free_space(G, traj_cells, carved=None, min_rays=2, close_m=0.30):
     return np.isin(lab, keep), walls
 
 
+def close_doors(walls, max_gap_m=1.05, min_run_m=0.25):
+    """Virtually close doorways: along every grid row and column, fill a gap in the wall mask if
+    it is at most a door wide and wall continues for at least `min_run_m` on both sides.
+    Rooms then separate as connected components even when the door is open."""
+    out = walls.copy()
+    g, r = int(max_gap_m / RES), int(min_run_m / RES)
+    for arr, res in ((walls, out), (walls.T, out.T)):
+        for i in range(arr.shape[0]):
+            row = arr[i]
+            idx = np.flatnonzero(np.diff(np.concatenate([[0], row.astype(np.int8), [0]])))
+            runs = list(zip(idx[::2], idx[1::2]))
+            for (a0, a1), (b0, b1) in zip(runs[:-1], runs[1:]):
+                if b0 - a1 <= g and a1 - a0 >= r and b1 - b0 >= r:
+                    res[i, a1:b0] = True
+    return out
+
+
 def segment(free, door_half_m=0.48, min_room_m2=1.2):
     """Watershed on the distance transform: rooms are blobs joined only by door-width necks."""
     dist = ndi.distance_transform_edt(free) * RES
