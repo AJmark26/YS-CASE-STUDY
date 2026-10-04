@@ -33,9 +33,16 @@ def main(argv=None):
         result, cloud, U = pipeline_lidar.run(a.capture, drift=not a.no_drift)
     elif tier == "video":
         from . import pipeline_lidar, pipeline_video
-        vc = pipeline_video.build(a.capture, depth=a.video_depth,
-                                  cache=None if a.no_cache else out / "video_depths.npz")
-        result, cloud, U = pipeline_lidar.run(a.capture, drift=not a.no_drift, cap=vc, tier="video")
+        if a.capture.is_dir() and (a.capture / "odometry.csv").exists():
+            vc = pipeline_video.build(a.capture, depth=a.video_depth,
+                                      cache=None if a.no_cache else out / "video_depths.npz")
+            result, cloud, U = pipeline_lidar.run(a.capture, drift=not a.no_drift, cap=vc, tier="video")
+        else:                                   # plain clip from any camera app: no poses
+            clip = a.capture if a.capture.is_file() else sorted(
+                [*a.capture.glob("*.mp4"), *a.capture.glob("*.MOV"), *a.capture.glob("*.mov")])[0]
+            vc, stats = pipeline_video.build_posefree(clip)
+            vc.stats = stats
+            result, cloud, U = pipeline_lidar.run(clip, drift=False, cap=vc, tier="video")
         result["video"] = vc.stats
     else:
         from . import pipeline_photo
