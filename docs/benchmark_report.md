@@ -3,7 +3,8 @@
 All numbers come from `bench/` and regenerate with the commands under "Reproduce every
 number" in the README. Code: commit `c2ef7cd` on `main`. The LiDAR plans it scores were made by
 `d340327`; rerun with `c2ef7cd`, the bedroom cut's plan differs by at most 1e-14, and the LiDAR
-rows of `bench/benchmark.json` are unchanged. The video and photo rows come from `c2ef7cd`.
+rows of `bench/benchmark.json` are unchanged. The video rows come from `c2ef7cd`, the photo rows
+from `e392bc2` (room stitching).
 
 ## What could be measured
 
@@ -41,7 +42,7 @@ A bias that both measurements share is invisible to all of these.
 | Ceiling height within 1.5 cm of truth | | not measurable without ground truth | not measured |
 | Drift accountability | ablation on the whole-apartment capture | loop misalignment 16.4 cm to 2.3 cm; footprint and rooms below | met |
 | Video tier: walls within 3% | 19 walls over 2 captures, against LiDAR | 68% (13 of 19); median 2.27% (3.2 cm); 18 of 19 inside the 95% interval | fail |
-| Photo tier: walls within 8%, stitched plan | 8 rooms over 2 captures, against LiDAR | floor area within 8% on 2 of 8 rooms, room sides on 3 of 16; not stitched | fail |
+| Photo tier: walls within 8%, stitched plan | 8 rooms over 2 captures, against LiDAR | floor area within 8% on 0 of 8 rooms (2 of 8 on the earlier sets), room sides on 1 of 16; 3 of 8 rooms stitched, cameras within 0.30 m of truth | fail |
 | Head-to-head against a consumer app | | not run: needs the rooms and a LiDAR iPhone | not met |
 
 The ceiling result is "repeatable but bias unknown": the halves agree, and nothing here can
@@ -245,33 +246,60 @@ alignment for the whole plan) gave 7 of 7 and 14 of 20 walls within 3% on the sa
 The table above uses the stricter 3D, per-room method of the LiDAR repeatability check; on the
 same outputs the 2D method gives 6 of 7 for `c00a170fe1`.
 
-### Photo tier (2 to 8 stills per room, no poses)
+### Photo tier (2 to 9 stills per room, no poses)
 
-Each room folder is scored on its own against the LiDAR room it was cut from, on floor area and
-on the two sides of its bounding box (`scripts/eval_photo.py`, `bench/photo_vs_lidar_*.json`).
-Wall-by-wall scoring found no wall to compare: once each photo room is placed in its LiDAR
-room, every wall has an end the stills did not see.
+The sets are cut from each capture's video by `scripts/make_photo_set_protocol.py`, as the
+protocol asks: a chain of overlapping stills per room, plus a doorway still from each side of a
+doorway, taken 0.2 to 2 m back in the next room, wherever the video has one. Each room is scored
+against the LiDAR room it was cut from, on floor area and the two sides of its bounding box.
+Stitching is scored by where the plan puts each room's cameras against their true positions in
+the LiDAR capture (`scripts/eval_photo.py`, `bench/photo_vs_lidar_*.json`).
 
-| Room | Stills | Area, photo vs LiDAR | Area difference | Interval covers LiDAR | Sides, photo vs LiDAR |
-|---|---|---|---|---|---|
-| floor only R3 | 8 | 8.50 vs 8.41 m² | +1.0% | yes | 2.89 × 2.92 vs 2.89 × 3.12 m |
-| floor only R6 | 4 | 2.71 vs 2.69 m² | +0.7% | yes | 1.60 × 1.69 vs 1.40 × 2.09 m |
-| floor only R2 | 3 | 12.86 vs 11.07 m² | +16% | yes | 2.01 × 6.44 vs 3.83 × 3.95 m |
-| floor only R4 | 3 | 4.80 vs 7.89 m² | -39% | no | 1.99 × 2.42 vs 2.97 × 3.24 m |
-| single_room R1 | 7 | 6.80 vs 14.13 m² | -52% | no | 2.36 × 2.88 vs 2.94 × 7.84 m |
-| floor only R5 | 1 | 1.49 vs 4.24 m² | -65% | no | 0.76 × 1.97 vs 2.00 × 2.44 m |
-| floor only R1 | 3 | 5.54 vs 16.83 m² | -67% | no | 1.29 × 5.14 vs 4.85 × 4.99 m |
-| single_room R2 | 2 | 1.33 vs 6.89 m² | -81% | no | 1.16 × 1.22 vs 2.92 × 3.07 m |
+**Stitching.** Two rooms are joined by a doorway still from each side (`ysplan/stitch.py`).
 
-- Two rooms land within 1% on area; only R3 also has both sides within 8%. In the other six the
-  stills see part of the room, and the room is measured as the part they saw, so it comes out
-  short. The stills are frames of a walkthrough that rarely looks down, not photos taken to the
-  protocol.
+| Doorway | Stills, degrees off the walls: true (as reconstructed) | Result |
+|---|---|---|
+| floor only R1-R2 | 8 and 9 (7 and 10) | right quarter turn; cameras 0.25 m (R1) and 0.08 m (R2) from truth, rotation within 1.7 degrees |
+| floor only R1-R5 | 1 and 8 (1 and 7) | right quarter turn; R5 cameras 0.30 m from truth, rotation 4.2 degrees off |
+| single_room R1-R2 | 38 and 40 (30 and 35) | not used (limit 25 degrees, as reconstructed); the two rooms are laid out side by side |
+
+- The apartment walk has a straight-on still from both sides for 2 of its 5 doorways, so 3 of 6
+  rooms are stitched. R3 and R6 have a still from one side only and R4 none. Those rooms are laid
+  out beside the plan and listed in `photo.unstitched_rooms`.
+- The stitched rooms are measured again together. Their outlines no longer overlap (5.3 m²
+  before), and the door between R1 and R2 is found (0.74 m, interval 0.64 to 0.84 m).
+- Before the 25-degree limit, the bedroom pair joined the rooms 119 and 26 degrees off while the
+  plan called them stitched. MapAnything also failed to register those rooms: their camera
+  layouts are 1.05 and 1.35 m rms from the truth, against 0.01 to 0.11 m in the apartment. The
+  limit was chosen with these six stills in view.
+
+**Room outlines.**
+
+| Room | Stills | Stitched | Area, photo vs LiDAR | Area difference | Interval covers LiDAR | Sides, photo vs LiDAR |
+|---|---|---|---|---|---|---|
+| floor only R4 | 3 | no | 4.80 vs 7.88 m² | -39% | no | 1.99 × 2.42 vs 2.97 × 3.24 m |
+| floor only R3 | 9 | no | 4.80 vs 8.41 m² | -43% | no | 1.94 × 2.84 vs 2.89 × 3.12 m |
+| floor only R5 | 2 | yes | 2.38 vs 4.24 m² | -44% | no | 1.11 × 2.18 vs 2.00 × 2.44 m |
+| floor only R2 | 4 | yes | 6.15 vs 11.07 m² | -44% | no | 2.00 × 3.61 vs 3.83 × 3.95 m |
+| floor only R6 | 4 | no | 1.33 vs 2.69 m² | -50% | no | 0.96 × 1.38 vs 1.40 × 2.09 m |
+| floor only R1 | 4 | yes | 7.79 vs 16.83 m² | -54% | no | 2.42 × 4.04 vs 4.85 × 4.99 m |
+| single_room R1 | 8 | no | 4.27 vs 14.13 m² | -70% | no | 2.98 × 3.13 vs 2.94 × 7.84 m |
+| single_room R2 | 3 | no | 1.03 vs 6.89 m² | -85% | no | 0.86 × 1.24 vs 2.92 × 3.07 m |
+
+- No room lands within 8% on area: the stills see part of each room, and the room is measured as
+  the part they saw. The stills are frames of a walkthrough that rarely looks down, not photos
+  taken to the protocol. Of the 3 walls that could be compared, 2 are within 8% (median 1.9%).
+- The earlier sets (`bench/photo_vs_lidar_*.json` at `245fa04`) took each doorway still in the
+  doorway itself. The same code gives 2 of 8 rooms within 8% on them (R3 +1.0%, R6 +0.7%), with
+  3 of 8 intervals covering LiDAR. A still shot from the next room changes the room's
+  reconstruction: R3 has the same eight room photos in both sets and goes from +1.0% to -43%
+  (-39% with the doorway still kept out of the measurement but in the reconstruction).
+  Reconstructing each room without its doorway stills, then placing those in a second pass, is
+  the next step. It is not built.
 - The intervals carry the measurement terms and the scale spread between MoGe-2 and the
   multi-view reconstruction (5% of scale, doubled for area). They do not model unseen floor,
-  which is the dominant error: 3 of 8 cover LiDAR. These are confident wrong answers, and the
-  fix (report a room whose outline rests on unseen floor as a lower bound) is not built.
-- Rooms are laid out side by side, not stitched, so there is no photo-tier whole-home plan.
+  which is the dominant error: none of the 8 covers LiDAR. These are confident wrong answers, and
+  the fix (report a room whose outline rests on unseen floor as a lower bound) is not built.
 - MapAnything and MoGe-2 take 18 s to 200 s per room on CPU (9 minutes for the six apartment
   rooms); the reconstruction is cached and the geometry then takes seconds.
 - An earlier floor finder change (floor must cover 2 m² at least 1.1 m below the camera) shrank

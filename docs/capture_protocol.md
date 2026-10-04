@@ -59,18 +59,29 @@ things matter more:
 
 ## Photos (any phone)
 
-One folder per room, named after the room, with 4 to 8 photos. The only photo sets tested are
-stills cut from the sample walkthrough videos, which do not follow this protocol: in two rooms
-(8 and 4 stills) floor area came within 1% of LiDAR, and in the other six (1 to 7 stills) it came
-out 39 to 81% short in five and 16% long in one (`docs/benchmark_report.md`, Tiers against LiDAR).
+One folder per room, named after the room, with 4 to 8 photos, plus one photo through each
+doorway from each side. The only photo sets tested are stills cut from the sample walkthrough
+videos, which follow this protocol only where the video happened to: the rooms came out 39 to
+85% short in floor area, and 3 of 8 rooms were stitched (`docs/benchmark_report.md`, Tiers
+against LiDAR).
 
 | Do this | Why |
 |---|---|
 | Stand in a corner and photograph the opposite corner, then work round the room | Each wall is seen from across the room, so its whole length is in view |
 | Hold the phone at chest height, landscape, tilted slightly down so the floor-wall line is in every photo | The floor sets gravity and the room's extent; a room whose floor edge was not seen comes out too small |
 | Let each photo share a third to three quarters of its view with one already taken | The photos are placed relative to each other by what they share |
-| Take one photo straight through each doorway, from both sides | This is what rooms will be stitched by |
 | Do not edit, crop or zoom the photos; send the originals | The lens focal length is read from the photo's EXIF data |
 
-Run `python -m ysplan path/to/photos --tier photo`. Each room is measured on its own; the rooms
-are not yet stitched into one plan.
+**Doorways.** For every doorway between rooms A and B, take two photos:
+
+1. Stand in A, up to 2 m back from the doorway, and look straight through it into B. Put the
+   photo in B's folder and name it `door-from-A_1.jpg` (anything after the underscore).
+2. Stand in B and do the same into A: the photo goes in A's folder as `door-from-B_1.jpg`.
+
+Look square through the doorway, within about 20 degrees. The direction into the room is read
+from the photo's viewing direction, snapped to the room's walls; a photo more than 25 degrees
+off is not used, and a pair taken about 40 degrees off joined the sample bedroom at the wrong
+quarter turn before that limit was added. A room without a usable doorway photo from both sides
+is laid out beside the plan and listed in `photo.unstitched_rooms`.
+
+Run `python -m ysplan path/to/photos --tier photo`.

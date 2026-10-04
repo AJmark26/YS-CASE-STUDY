@@ -50,7 +50,8 @@ python scripts/benchmark.py                            # repeatability, cross-ti
 
 The video tier caches its keyframe depth in `<out>/video_depths.npz`; with that file present it
 needs no learned model. The photo tier takes one folder per room. Test sets are cut from the
-captures' videos, with each room's stills overlapping as the protocol asks:
+captures' videos as the protocol asks: each room's stills overlap, and a doorway still is taken
+from each side wherever the video has one:
 
 ```
 python scripts/make_photo_set_protocol.py data/<capture_id> out/<capture_id>_lidar/plan.json photos/<capture_id>
@@ -102,8 +103,9 @@ an Android phone) runs, but is experimental: it recovers no room yet.
 
 **Photo tier** (any phone): one folder per room, each holding 2 to 8 overlapping stills taken
 as [docs/capture_protocol.md](docs/capture_protocol.md) describes, then
-`python -m ysplan path/to/photos --tier photo`. Each room is measured on its own; the rooms are
-laid out side by side, not stitched into one plan.
+`python -m ysplan path/to/photos --tier photo`. Rooms are joined at doorways photographed from
+both sides (a photo from room A into room B goes in B's folder as `door-from-A_1.jpg`); rooms
+without such a pair are laid out beside the plan and listed in `photo.unstitched_rooms`.
 
 ## Reproduce every number
 
@@ -182,4 +184,4 @@ loop closures and the misalignment before and after correction.
 | LiDAR | Runs end to end on all three sample captures |
 | Video, ARKit poses | Runs (MapAnything depth); 13 of 19 walls within 3% of LiDAR, but rooms fragment and the footprint comes out 28 to 42% short; ceilings withheld |
 | Video, no poses | Experimental: runs, recovers no room |
-| Photo | Runs room by room (MapAnything, MoGe-2 scale); floor area within 8% of LiDAR on 2 of 8 rooms; rooms not stitched |
+| Photo | Runs (MapAnything, MoGe-2 scale); 3 of 8 sample rooms stitched at doorways, cameras within 0.30 m of truth; floor area 39 to 85% short of LiDAR |

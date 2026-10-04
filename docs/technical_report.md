@@ -64,14 +64,16 @@ with an install message, and posed video falls back to a monocular model that re
 on the bedroom cut.
 
 The photo tier gets gravity from the floor plane, and each room folder claims the floor its own
-photos' rays cross. Its rooms are laid out side by side: stitching them at the doorway photos
-is not finished, so the photo tier has no whole-home plan.
+photos' rays cross. Rooms are joined at doorways photographed from both sides: each photo's
+view, snapped to the walls, gives the quarter turn, and the door wall in its own depth the offset;
+joined rooms are then measured together. A photo over 25° off the walls is not used, and rooms
+without a usable pair are laid out beside the plan.
 
 | Device | Tier | Measured on the samples (consistency with the LiDAR tier) |
 |---|---|---|
 | iPhone 12 Pro or later Pro, iPad Pro 2020 or later | LiDAR | same wall in two captures: median 1.88 cm, 37.9% within 1 cm or 0.5% |
 | Other iPhones, with an app saving ARKit poses | video | walls within 3% of LiDAR: 13 of 19 (median 2.3%); rooms fragment, footprint 28 to 42% short; no ceilings |
-| Any phone, stills | photo | floor area within 8% of LiDAR on 2 of 8 rooms (both within 1%), 39 to 81% short on five; not stitched |
+| Any phone, stills | photo | 3 of 8 rooms stitched, cameras within 0.30 m of truth; floor area 39 to 85% short (2 of 8 within 8% on earlier sets) |
 | Android, or any clip without poses | video without poses | runs; recovers no room (the chained windows disagree in heading) |
 
 The video inputs are the sample captures with their depth deleted, and the photo inputs are
@@ -125,7 +127,7 @@ the difference of two measurements falls inside their combined interval.
 | Same opening, two captures (3 matches, all different objects) | 0 of 3 |
 | Walk-in rehearsal walls against the full capture (10 walls) | 6 of 10 |
 | Video walls against LiDAR (19 walls) | 18 of 19 with the tier factor of 5, fitted on these walls (13 of 19 without) |
-| Photo room areas against LiDAR (8 rooms) | 3 of 8: unseen floor is not in the interval |
+| Photo room areas against LiDAR (8 rooms) | 0 of 8 (3 of 8 on earlier sets): unseen floor is not in the interval |
 
 For measurement noise the wall intervals are wide enough, if anything wide: with the residual
 loop disagreement they carry, every difference falls inside (median combined 1-sigma 3.6 cm
@@ -144,7 +146,7 @@ those errors.
 | Ceiling within 1.5 cm of truth | | needs ground truth | not measured |
 | Drift accountability | ablation | section 4 | met |
 | Video walls within 3% | 19 walls against LiDAR | 68%; median 2.27% | fail |
-| Photo walls within 8%, stitched | 8 rooms against LiDAR | area within 8% on 2 of 8; not stitched | fail |
+| Photo walls within 8%, stitched | 8 rooms against LiDAR | area within 8% on 0 of 8; 3 of 8 rooms stitched | fail |
 | Head-to-head against a consumer app | | needs the rooms and a LiDAR iPhone | not met |
 
 Timing, one run at a time on 4 CPU cores without a GPU: a one-room capture runs in 25 to 80 s;
@@ -207,5 +209,5 @@ Known failure modes, worst first:
    inside the intervals) and 3 false regions. A learned detector plugs into the same interface.
 8. **Lower-tier outlines.** Video walls land within a few centimetres, but its rooms fragment and
    its footprint is 28 to 42% short. A photo room is measured as the part its stills saw, with an
-   interval that does not cover the unseen part: 3 of 8 cover LiDAR. These are confident wrong
+   interval that does not cover the unseen part: none of 8 covers LiDAR. These are confident wrong
    answers; reporting such rooms as lower bounds is the next fix.
