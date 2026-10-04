@@ -84,3 +84,18 @@ def build(U, floor_y, yaw, wall_span=1.0, pad=0.3):
     np.minimum.at(hmin, (ij[above, 0], ij[above, 1]), h[above])
     wall = (hmax - hmin) >= wall_span
     return Grids(origin, yaw, floor_y, wall, floor, hmax, hmin, count)
+
+
+def sharpness(U, lo=0.4, hi=1.8, bin_m=0.01):
+    """Wall crispness of an aligned cloud: concentration of wall-band points on both plan axes.
+
+    Doubled walls (drift) spread the histogram mass over more bins and lower this number.
+    Used for the drift on/off ablation; higher is better.
+    """
+    m = (U[:, 1] > lo) & (U[:, 1] < hi)
+    s = 0.0
+    for ax in (0, 2):
+        w = U[m, ax]
+        h = np.bincount(((w - w.min()) / bin_m).astype(int)).astype(float)
+        s += np.sum(h ** 2) / np.sum(h) ** 2
+    return float(s * 1000)
