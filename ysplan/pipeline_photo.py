@@ -68,7 +68,7 @@ def gravity_from_cameras(R_wc):
     X = R_wc[:, :, 0]
     up_img = -R_wc[:, :, 1].mean(0)
     if len(X) >= 2:
-        _, sv, vt = np.linalg.svd(X)
+        _, sv, vt = np.linalg.svd(X, full_matrices=False)
         up = vt[-1] if sv[1] > 0.2 * sv[0] else up_img
     else:
         up = up_img
@@ -102,7 +102,7 @@ def floor_plane(P, up, tol=0.02, max_angle_deg=12, iters=400, rng=None, return_c
         return (up, None, best_n) if return_count else (up, None)
     n, a = best
     inl = low[np.abs((low - a) @ n) < tol]
-    _, _, vt = np.linalg.svd(inl - inl.mean(0))
+    _, _, vt = np.linalg.svd(inl - inl.mean(0), full_matrices=False)
     n = vt[-1] * np.sign(vt[-1] @ up)
     return (n, float(inl.mean(0) @ n), best_n) if return_count else (n, float(inl.mean(0) @ n))
 
