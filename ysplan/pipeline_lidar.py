@@ -71,6 +71,8 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar"):
         "tier": tier,
         "units": "m",
         "frame": "gravity-aligned plan; x,y = Manhattan-aligned floor coordinates, origin arbitrary",
+        "alignment": {"yaw_rad": float(yaw), "floor_y_world": float(floor_y),
+                      "note": "plan x = X cos(yaw) + Z sin(yaw), plan y = -X sin(yaw) + Z cos(yaw) in capture world"},
         "capture": {"path": str(capture_dir), "frames": int(len(cap)), "frames_used": int(valid.sum()),
                     "duration_s": round(duration, 2)},
         "rooms": out_rooms,
