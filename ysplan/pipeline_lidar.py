@@ -58,7 +58,8 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high
     out_rooms, per_room_open = [], {}
     for k, poly in polys.items():
         rid = f"R{k}"
-        wl = measure.walls(U, poly, sigma_drift=sigma_drift)
+        yaw_r = measure.room_yaw(U, poly)          # residual drift can leave a room slightly turned
+        wl = measure.walls(U, poly, sigma_drift=sigma_drift, yaw=yaw_r)
         lp = poly.representative_point()
         out_rooms.append({
             "id": rid,
@@ -69,6 +70,7 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high
             "ceiling_height_m": measure.ceiling(U, poly),
             "bbox_m": [round(poly.bounds[2] - poly.bounds[0], 3), round(poly.bounds[3] - poly.bounds[1], 3)],
             "wall_observed_fraction": round(float(np.mean([w["observed_fraction"] for w in wl])), 3),
+            "squared_by_deg": round(float(np.degrees(yaw_r)), 2),
         })
         per_room_open[rid] = openings.detect(U, G, poly, c_low, c_mid)
     ops = openings.merge(per_room_open)

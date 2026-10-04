@@ -33,21 +33,83 @@ def face_stats(U, axis, line, lo, hi, tol=0.05, band=(0.2, 2.2)):
             "n": int(len(pts)), "observed": float(min(1.0, len(cells) * 0.02 / max(hi - lo, 1e-6)))}
 
 
-def walls(U, poly, sigma_drift=0.0, tier_scale=1.0):
+def _sharpness(xy):
+    """How tightly points pile up on the two axes (sum of squared 1 cm histogram counts)."""
+    sc = 0.0
+    for v in (xy[:, 0], xy[:, 1]):
+        h = np.bincount(((v - v.min()) / 0.01).astype(int))
+        sc += float(np.sum(h.astype(float) ** 2))
+    return sc / len(xy)
+
+
+def room_yaw(U, poly, band=(0.3, 1.9), search_deg=4.0, step_deg=0.05, min_gain=0.03, min_deg=0.2):
+    """Small rotation (rad) that squares this room's own walls to the plan axes.
+
+    Drift that loop closure could not remove can leave one room of a multi-room capture turned by
+    a few tenths of a degree up to a few degrees against the rest of the plan. Measured on the
+    global axes, its walls smear across several cm. Returns 0 unless squaring the room sharpens
+    its walls by at least `min_gain` and the rotation is at least `min_deg`.
+    """
+    from shapely import contains_xy
+    m = (U[:, 1] > band[0]) & (U[:, 1] < band[1])
+    W = U[m][:, [0, 2]]
+    W = W[contains_xy(poly.buffer(0.25), W[:, 0], W[:, 1])]
+    if len(W) < 500:
+        return 0.0
+    W = W - W.mean(0)
+    degs = np.arange(-search_deg, search_deg + 1e-9, step_deg)
+    sc = []
+    for d in degs:
+        c, s = np.cos(np.radians(d)), np.sin(np.radians(d))
+        sc.append(_sharpness(np.stack([W[:, 0] * c + W[:, 1] * s, -W[:, 0] * s + W[:, 1] * c], 1)))
+    sc = np.array(sc)
+    k = int(np.argmax(sc))
+    best = degs[k]
+    if 0 < k < len(sc) - 1:                       # parabolic refinement between grid steps
+        den = sc[k - 1] - 2 * sc[k] + sc[k + 1]
+        if den < 0:
+            best += 0.5 * step_deg * (sc[k - 1] - sc[k + 1]) / den
+    s0 = sc[np.argmin(np.abs(degs))]
+    if abs(best) < min_deg or sc[k] < s0 * (1 + min_gain):
+        return 0.0
+    return float(np.radians(best))
+
+
+def _rotate(xy, ang, c):
+    """Rotate plan points by `ang` (rad) about centre c."""
+    ca, sa = np.cos(ang), np.sin(ang)
+    d = xy - c
+    return np.stack([d[:, 0] * ca - d[:, 1] * sa, d[:, 0] * sa + d[:, 1] * ca], 1) + c
+
+
+def walls(U, poly, sigma_drift=0.0, tier_scale=1.0, yaw=None):
     """Measure every edge of a rectilinear room polygon.
 
     Each edge's wall face is located from its supporting points. Each corner is moved to the
     intersection of its two measured faces, so the length of edge k is the distance between the
     measured faces of edges k-1 and k+1, not the grid-snapped polygon. Unobserved faces keep
     their polygon position.
+
+    `yaw` squares the room first (see room_yaw; None = estimate it here, 0 = off). The room is
+    measured in its own squared frame and corners are rotated back into the plan frame.
     """
-    xy = list(poly.exterior.coords)[:-1]
+    if yaw is None:
+        yaw = room_yaw(U, poly)
+    xy = np.array(poly.exterior.coords)[:-1]
+    ctr = xy.mean(0)
+    if yaw:
+        near = poly.buffer(0.6).bounds
+        m = (U[:, 0] > near[0]) & (U[:, 0] < near[2]) & (U[:, 2] > near[1]) & (U[:, 2] < near[3])
+        U = U[m].copy()
+        U[:, [0, 2]] = _rotate(U[:, [0, 2]], -yaw, ctr)
+        xy = _rotate(xy, -yaw, ctr)
+    xy = [tuple(q) for q in xy]
     n = len(xy)
     edges = []
     for k in range(n):
         (x0, y0), (x1, y1) = xy[k], xy[(k + 1) % n]
-        horiz = abs(y1 - y0) < 1e-6
-        axis, line = (0, y0) if horiz else (2, x0)
+        horiz = abs(y1 - y0) < abs(x1 - x0)
+        axis, line = (0, (y0 + y1) / 2) if horiz else (2, (x0 + x1) / 2)
         lo, hi = sorted([x0, x1] if horiz else [y0, y1])
         edges.append({"axis": axis, "line": line, "lo": lo, "hi": hi,
                       "face": face_stats(U, axis, line, lo + 0.05, hi - 0.05)})
@@ -60,6 +122,7 @@ def walls(U, poly, sigma_drift=0.0, tier_scale=1.0):
             continue
         h, v = (a, b) if a["axis"] == 0 else (b, a)
         corners.append((v["face"]["pos"], h["face"]["pos"]))
+    corners_plan = _rotate(np.array(corners), yaw, ctr) if yaw else np.array(corners)
     out = []
     for k, e in enumerate(edges):
         a, b = edges[k - 1]["face"], edges[(k + 1) % n]["face"]
@@ -69,6 +132,7 @@ def walls(U, poly, sigma_drift=0.0, tier_scale=1.0):
         (x0, y0), (x1, y1) = corners[k], corners[(k + 1) % n]
         L = abs(x1 - x0) if e["axis"] == 0 else abs(y1 - y0)
         s = float(np.hypot(sa, sb))
+        (x0, y0), (x1, y1) = corners_plan[k], corners_plan[(k + 1) % n]
         out.append({"from": [round(x0, 4), round(y0, 4)], "to": [round(x1, 4), round(y1, 4)],
                     "length_m": _val(L, s), "observed_fraction": round(e["face"]["observed"], 3),
                     "face_points": e["face"]["n"],
