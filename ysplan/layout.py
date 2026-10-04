@@ -63,12 +63,59 @@ def regularize(p, us, vs, notch=0.25, min_area=1.5):
 _KW = dict(join_style=2, mitre_limit=10)
 
 
+def _rect_simplify(coords, min_step=0.2):
+    """Remove jogs shorter than `min_step` from an axis-aligned ring.
+
+    For a short edge between two parallel neighbours, the shorter neighbour is moved onto the
+    longer neighbour's line (the longer one has more wall support), then collinear vertices
+    are merged. Repeats until no short jog remains.
+    """
+    pts = [list(p) for p in coords[:-1]]
+
+    def clean(pts):
+        out = []
+        n = len(pts)
+        for i in range(n):
+            a, b, c = pts[i - 1], pts[i], pts[(i + 1) % n]
+            if abs(a[0] - b[0]) < 1e-6 and abs(b[0] - c[0]) < 1e-6:
+                continue
+            if abs(a[1] - b[1]) < 1e-6 and abs(b[1] - c[1]) < 1e-6:
+                continue
+            if abs(a[0] - b[0]) < 1e-6 and abs(a[1] - b[1]) < 1e-6:
+                continue
+            out.append(b)
+        return out
+
+    for _ in range(200):
+        pts = clean(pts)
+        n = len(pts)
+        if n <= 4:
+            break
+        lens = [np.hypot(pts[(i + 1) % n][0] - pts[i][0], pts[(i + 1) % n][1] - pts[i][1]) for i in range(n)]
+        i = int(np.argmin(lens))
+        if lens[i] >= min_step:
+            break
+        j = (i + 1) % n
+        prev_len, next_len = lens[i - 1], lens[j]
+        ax = 0 if abs(pts[i][0] - pts[j][0]) > 1e-6 else 1   # axis along which the jog runs
+        if prev_len >= next_len:      # move the next edge onto the previous edge's line
+            val = pts[i][ax]
+            pts[j][ax] = val
+            pts[(j + 1) % n][ax] = val
+        else:
+            val = pts[j][ax]
+            pts[i][ax] = val
+            pts[i - 1][ax] = val
+    return [tuple(p) for p in clean(pts)]
+
+
 def _close_snap(q, us, vs, notch):
     from shapely.geometry import Polygon
     q = q.buffer(notch, **_KW).buffer(-notch, **_KW)        # close: fill notches
     if q.geom_type == "MultiPolygon":
         q = max(q.geoms, key=lambda g: g.area)
     pts = [(_snap(x, us), _snap(y, vs)) for x, y in q.exterior.coords]
+    pts = _rect_simplify(Polygon(pts).buffer(0).simplify(0.002).exterior.coords)
     out = Polygon(pts).buffer(0)
     if out.geom_type == "MultiPolygon":
         out = max(out.geoms, key=lambda g: g.area)

@@ -6,13 +6,13 @@ from scipy import ndimage as ndi
 from .grid import RES
 
 
-def carve(G, cap, poses, frame_ids, stride=8, step_m=0.02, stop_m=0.06, max_end_h=0.8):
+def carve(G, cap, poses, frame_ids, stride=8, step_m=0.02, stop_m=0.06, end_h=(-0.05, 0.8)):
     """2D space carving: count, per plan cell, how many LiDAR rays passed through it.
 
     A ray from the camera to a measured surface proves the space in between is empty, which
     recovers floor area the sensor never looked down at (rooms scanned at wall height).
-    Only rays ending below `max_end_h` (window-sill height) carve: rays through window glass
-    would otherwise carve the outdoors. Floor-to-ceiling glass can still leak.
+    Only rays ending inside `end_h` carve. The default (below sill height) stops rays through
+    window glass from carving the outdoors. Floor-to-ceiling glass can still leak.
     """
     from .fuse import backproject
     c, s = np.cos(G.yaw), np.sin(G.yaw)
@@ -20,7 +20,7 @@ def carve(G, cap, poses, frame_ids, stride=8, step_m=0.02, stop_m=0.06, max_end_
     for i in frame_ids:
         P = backproject(cap, i, pose=poses[i], stride=stride)
         h = P[:, 1] - G.floor_y
-        P = P[(h > -0.05) & (h < max_end_h)]
+        P = P[(h > end_h[0]) & (h < end_h[1])]
         o = poses[i][:3, 3]
         ou = np.array([o[0] * c + o[2] * s, -o[0] * s + o[2] * c])
         pu = np.stack([P[:, 0] * c + P[:, 2] * s, -P[:, 0] * s + P[:, 2] * c], 1)
