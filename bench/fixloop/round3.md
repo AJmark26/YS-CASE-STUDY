@@ -2,7 +2,7 @@
 
 Fix: Ceiling level minus each room's own floor level.
 
-Before: commit `5eed22a10c` (tag fixloop-3-before). After: commit `7b57f3597b` (tag fixloop-3-after). Regenerate with `python scripts/fixloop.py --rounds 3`.
+Before: commit `5eed22a10c`. After: commit `7b57f3597b`. Regenerate with `python scripts/fixloop.py --rounds 3`.
 
 | Measure | Before | After |
 | --- | --- | --- |

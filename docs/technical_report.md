@@ -130,8 +130,8 @@ Round 5 was the worst gate and the only one with a prediction written before the
 prediction (about 15 openings found by both captures, 15 to 25% within 2 cm) was badly wrong:
 3 were found by both, and they were different objects. Looking up each of the 24 openings that
 one capture found and the other missed: 10 were seen by the other capture as gaps but dropped
-because the wall beside them was seen only in part (the new jamb rule, meant to keep clutter
-out, costs more detections than it saves on these walks), 8 lie on wall lines the other capture
+by its jamb or depth checks (most likely the new jamb rule, which keeps clutter out but needs
+wall seen at most heights beside the door; the diagnostic does not separate the two), 8 lie on wall lines the other capture
 does not search (the room-split hypothesis, still true), 4 are solid wall there (a closed door
 or a phantom) and 2 were not crossed by rays. What the round did fix: openings drawn across wall
 that the same capture saw as solid fell from 12 of 37 to 3 of 24.

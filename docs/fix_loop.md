@@ -23,6 +23,7 @@ are compared; both are given below. Round 3 regenerates the same result it shipp
 | 3 | Ceiling spread (1 cm) | 4 of 6 rooms | 5 of 6 rooms | shipped, short of the gate |
 | 4 | Calibration of wall intervals | 86.7% inside 95% CI | 90% to 100%, but 2 to 10 times wider intervals | rejected |
 | 5 | Opening widths (2 cm on 85%) | 0 of 38 openings | 0 of 27 openings | shipped, prediction badly wrong |
+| 6 | Walk-in room areas | t3 15.9 against 11.1 m² | no room cut | rejected: the captures' rays contradict it |
 
 Rounds 1 to 3 were run before this file existed, and no numeric prediction was written down
 for them before the fix shipped. Round 5 is the first one declared in advance: its prediction
@@ -70,8 +71,9 @@ more often than the right one. Numbers: `bench/fixloop/round2_face_search.json`.
 - **Result.** 4 of 6 to 5 of 6 rooms within 1 cm; largest spread 3.97 to 1.68 cm; 6 of 6
   inside their intervals (was 5 of 6). Regenerated on the current outputs
   (`bench/fixloop/round3.md`): the same, with R5's spread before at 4.01 cm. Ceiling values move by up to 3.5 cm, mostly from the
-  floor offsets. R3 still spreads 1.7 cm: it is 3.06 m high, the farthest ceiling from the
-  phone, and its two halves see different parts of it.
+  floor offsets. One room got worse: R3 went from 0.42 to 1.68 cm and is now the room that
+  fails. It is 3.06 m high, the farthest ceiling from the phone, and its two halves see
+  different parts of it; that is a likely reason, not an investigated one.
 
 ## Round 4: widen wall intervals for competing surfaces (rejected)
 
@@ -142,18 +144,20 @@ computed on the pipeline's internal ray-carving grids, which `fixloop.py` does n
 
 | What the other capture shows there | Openings |
 |---|---|
-| A gap that rays crossed, rejected because the wall beside it is not solid at most heights | 10 |
+| A gap that rays crossed, rejected by the jamb checks or the depth checks (the diagnostic does not record which) | 10 |
 | No searched stretch of wall line passes there | 8 |
 | Solid wall (a door closed in one walk, or a phantom in the first) | 4 |
 | No rays crossed the line (that side was not scanned) | 2 |
 
 Hypothesis 1 (detection follows the room split) is right for 8 of 24: searching every outline
 edge plus tall partitions still leaves wall lines that are neither in the other capture. The
-fix's own jamb rule causes the largest group. Requiring solid wall over most of 0.3 to 1.9 m on
-both sides of a gap is what keeps clutter out of the jambs (hypothesis 2), but in these walks
-the wall beside a door is often seen only below 1.2 m or only on one side, so the other capture
-sees the gap and drops it. The trade between clutter-proof jambs and detection was not in the
-declaration, and it dominates on these captures.
+largest group, 10 of 24, is gaps the other capture saw and then dropped. The diagnostic records
+only that the jamb checks (solid wall over most of 0.3 to 1.9 m on both sides) or the depth
+checks (open floor 25 and 45 cm from the line) rejected them, not which. The jamb rule is the
+likely cause: it is what keeps clutter out of the jambs (hypothesis 2), and in these walks the
+wall beside a door is often seen only below 1.2 m or only on one side. That trade between
+clutter-proof jambs and detection was not in the declaration; telling the two checks apart is
+the first step if this round were repeated.
 
 **What shipped anyway, and why.** The gate number is what was declared, and it did not move.
 The code still ships because it removes a failure the old detector had within a single
@@ -171,3 +175,30 @@ the opening; and search every wall line of the fused cloud rather than those nea
 outlines. Predicted effect: most of the 10 rejected gaps and some of the 8 unsearched ones
 become matches; widths would still differ by more than 2 cm wherever one capture sees a jamb
 only low down, so the gate would stay well short.
+
+## Round 6: cut rooms at doors found inside them (rejected)
+
+Not declared in advance: it was tried after the walk-in rehearsal and is kept because it was
+rejected on evidence.
+
+- **Target.** Walk-in rehearsal rooms whose area differs from the full capture's: t3 15.9
+  against 11.1 m², t1 12.0 against 14.1 m² (`bench/walkin.json`).
+- **Hypothesis.** On a short walk the wall beside a door is not scanned, so
+  `rooms.close_doors` (which closes gaps up to 1.05 m between seen wall) leaves the room open
+  and it runs on through the door into the space beyond. Evidence: in t1 and t3 the opening
+  detector finds a door inside the room, not on its outline.
+- **Tried.** Cut the room along the door's wall line out to its outline, but only where rays
+  crossed that extension of the line on less than a quarter of its length (wall that was not
+  scanned, not open floor), at most 2.5 m on each side, with both parts at least 1.5 m² and
+  0.6 m wide; a part the camera never entered is then dropped like any room seen only through
+  a doorway. Patch: `bench/fixloop/round6_door_cut.patch`.
+- **Result.** No room was cut. Rays ending on the floor crossed the extension on 98% of its
+  length in t3, and on 67% and 100% for the two candidate doors in t1: the camera saw floor
+  through the place where the wall would have to be, so those spaces are open to each other.
+  Without the ray test the cut would happen (t3 would become 10.9 plus 5.0 m², close to the
+  full capture's 11.1) but would contradict the capture's own evidence, and the same rule
+  without its length limit would have cut the floor-only capture's hall in two along a 3 m
+  line. The rehearsal's area differences are therefore not shown to be errors of the short
+  walks: where a room ends in an open plan is a judgement both captures make from different
+  views, and which one is right cannot be told without the rooms. Not shipped.
+

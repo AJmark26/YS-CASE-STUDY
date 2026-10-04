@@ -157,7 +157,7 @@ def main():
                "before": at_tag(tags[0], run), "after": at_tag(tags[1], run)}
         (d / f"round{n}.json").write_text(json.dumps(res, indent=1))
         lines = [f"# Fix loop, round {n}: {gate}", "", f"Fix: {fix}.", "",
-                 f"Before: commit `{tags[0]}` (tag fixloop-{n}-before). After: commit `{tags[1]}` (tag fixloop-{n}-after). Regenerate with "
+                 f"Before: commit `{tags[0]}`. After: commit `{tags[1]}`. Regenerate with "
                  f"`python scripts/fixloop.py --rounds {n}`.", "",
                  "| Measure | Before | After |", "| --- | --- | --- |"]
         for k, label, f, u in rows:

@@ -101,7 +101,8 @@ def load(root) -> StrayCapture:
             size = (w, h)
     ext = ".png" if any((root / "depth").glob("*.png")) else ".npy"
     have = {int(p.stem) for p in (root / "depth").glob(f"*{ext}")}
-    keep = np.array([f in have for f in fr])
+    # no depth at all is a video-tier capture (an iPhone without LiDAR): every pose is kept
+    keep = np.array([f in have for f in fr]) if have else np.ones(len(fr), bool)
     if not keep.all():
         notes.append(f"{int((~keep).sum())} of {len(fr)} poses have no depth map and were skipped")
     ok = keep & np.isfinite(t).all(1) & np.isfinite(q).all(1)

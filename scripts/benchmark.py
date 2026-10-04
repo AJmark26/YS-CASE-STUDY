@@ -213,7 +213,9 @@ def main(out_root="out", bench_dir="bench"):
         if (d / "plan.json").exists():
             p = json.loads((d / "plan.json").read_text())
             res.setdefault("drift_ablation", {})[tag] = {
-                "footprint_m2": p["footprint_m2"]["value"], "rooms": len(p["rooms"]),
+                "footprint_m2": p["footprint_m2"]["value"], "footprint_sigma_m2": p["footprint_m2"]["sigma"],
+                "rooms": len(p["rooms"]), "room_areas_m2": [r["floor_area_m2"]["value"] for r in p["rooms"]],
+                "openings": len(p["openings"]),
                 "drift": {k: v for k, v in p["drift"].items() if k != "loops"},
                 "timing_s": p["timing_s"]}
     (bench / "benchmark.json").write_text(json.dumps(res, indent=1))

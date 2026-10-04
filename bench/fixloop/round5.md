@@ -2,7 +2,7 @@
 
 Fix: Search every wall line for gaps in solid wall, jambs per height slice.
 
-Before: commit `a79bf15331` (tag fixloop-5-before). After: commit `e803d09280` (tag fixloop-5-after). Regenerate with `python scripts/fixloop.py --rounds 5`.
+Before: commit `a79bf15331`. After: commit `e803d09280`. Regenerate with `python scripts/fixloop.py --rounds 5`.
 
 | Measure | Before | After |
 | --- | --- | --- |

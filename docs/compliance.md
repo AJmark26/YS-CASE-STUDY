@@ -57,7 +57,7 @@ which gates can be measured and how.
 | Requirement | File | Artifact | Status |
 |---|---|---|---|
 | Head-to-head against a consumer app on two rooms | | | not met: needs the rooms and a LiDAR iPhone; the comparison script is ready (`scripts/register_plans.py` aligns any two plans) |
-| Fix loop: declaration, shipped fix, regenerable before and after | `docs/fix_loop.md`, `scripts/fixloop.py`, tags `fixloop-<n>-before/after` | `bench/fixloop/round<n>.{json,md}` | met |
+| Fix loop: declaration, shipped fix, regenerable before and after | `docs/fix_loop.md`, `scripts/fixloop.py` (before and after commits listed in it) | `bench/fixloop/round<n>.{json,md}` | met |
 | Process evidence | git history | commits as the work happened | met |
 
 ## Deliverables

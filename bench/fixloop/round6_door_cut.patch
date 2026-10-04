@@ -1,0 +1,96 @@
+diff --git a/ysplan/pipeline_lidar.py b/ysplan/pipeline_lidar.py
+index 8eb469f..775da3f 100644
+--- a/ysplan/pipeline_lidar.py
++++ b/ysplan/pipeline_lidar.py
+@@ -53,13 +53,23 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high
+     # out of the plan (its far walls are unobserved, so its dimensions would be guesses).
+     from shapely import contains_xy
+     unvisited = []
+-    for k in list(polys):
+-        inside = contains_xy(polys[k], traj[:, 0], traj[:, 1]).sum()
+-        if inside < 30:
+-            unvisited.append({"area_m2": round(polys[k].area, 2),
+-                              "polygon": [[round(x, 3), round(y, 3)] for x, y in list(polys[k].exterior.coords)[:-1]]})
+-            del polys[k]
+-    polys = {i: p for i, p in enumerate(sorted(polys.values(), key=lambda g: -g.area), 1)}
++
++    def drop_unvisited(polys):
++        for k in list(polys):
++            inside = contains_xy(polys[k], traj[:, 0], traj[:, 1]).sum()
++            if inside < 30:
++                unvisited.append({"area_m2": round(polys[k].area, 2),
++                                  "polygon": [[round(x, 3), round(y, 3)] for x, y in list(polys[k].exterior.coords)[:-1]]})
++                del polys[k]
++        return {i: p for i, p in enumerate(sorted(polys.values(), key=lambda g: -g.area), 1)}
++
++    polys = drop_unvisited(polys)
++    ops = openings.detect_lines(U, G, polys, c_low, c_mid)
++    cut = _split_at_doors(polys, ops, G, c_low)
++    if cut:
++        log(f"[{tier}] {len(cut) - len(polys)} room(s) cut at a door inside them")
++        polys = drop_unvisited(cut)
++        ops = openings.detect_lines(U, G, polys, c_low, c_mid)
+     log(f"[{tier}] {len(polys)} rooms ({len(unvisited)} regions seen only through doorways)")
+     sigma_drift = drift_rep.get("loop_misalignment_cm_after", 0.0) / 100.0 if drift else 0.0
+     out_rooms = []
+@@ -79,7 +89,6 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high
+             "wall_observed_fraction": round(float(np.mean([w["observed_fraction"] for w in wl])), 3),
+             "squared_by_deg": round(float(np.degrees(yaw_r)), 2),
+         })
+-    ops = openings.detect_lines(U, G, polys, c_low, c_mid)
+     for i, o in enumerate(ops, 1):
+         o["id"] = f"{o['type'][0].upper()}{i}"
+         o["width_m"] = measure._val(o["width_m"], o.pop("sigma_m"))
+@@ -111,6 +120,52 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high
+     return result, cloud, U
+ 
+ 
++def _split_at_doors(polys, ops, G, carved, max_ext=2.5, max_crossed=0.25, min_area=1.5, min_width=0.6):
++    """Cut rooms that run on through a door. Returns the new polygons, or None if none was cut.
++
++    rooms.close_doors closes a doorway only where wall was seen on both sides of it. On a short
++    walk the wall beside a door is often not scanned, so the room runs on through the door into
++    the space beyond. A door that openings.detect_lines finds inside a room, rather than on its
++    outline, shows this. The room is cut along the door's wall line, from the door to the
++    outline, if rays crossed that extension of the line along less than a quarter of it (wall
++    that was not scanned, not open floor), it is at most `max_ext` long on each side, and both
++    parts are at least `min_area` and `min_width` wide. The caller then drops a part the camera
++    never entered, as for any room seen only through a doorway.
++    """
++    from shapely.geometry import LineString, Point
++    from shapely.ops import split
++    out, cut = list(polys.values()), False
++    for o in ops:
++        if o["type"] != "door":
++            continue
++        u = o["axis"] == "u"
++        a0, a1, line = o["from"], o["to"], o["line"]
++        mid = Point(((a0 + a1) / 2, line) if u else (line, (a0 + a1) / 2))
++        for i, p in enumerate(out):
++            if not p.contains(mid) or p.exterior.distance(mid) < 0.15:
++                continue
++            x0, y0, x1, y1 = p.bounds
++            inter = p.intersection(LineString([(x0 - 1, line), (x1 + 1, line)] if u else [(line, y0 - 1), (line, y1 + 1)]))
++            segs = [g for g in getattr(inter, "geoms", [inter]) if g.geom_type == "LineString"]
++            seg = min(segs, key=lambda g: g.distance(mid), default=None)
++            if seg is None or seg.distance(mid) > 1e-6:
++                continue
++            ts = [c[0] if u else c[1] for c in seg.coords]
++            lo, hi = min(ts), max(ts)
++            if max(a0 - lo, hi - a1) > max_ext:
++                continue
++            t = np.concatenate([np.arange(lo, a0, 0.02), np.arange(a1, hi, 0.02)])
++            if len(t) and openings._crossed(G, carved, 2 if u else 0, line, t, (-0.04, 0.0, 0.04)).mean() >= max_crossed:
++                continue
++            parts = list(split(p, seg).geoms)
++            if len(parts) != 2 or any(q.area < min_area or q.buffer(-min_width / 2).is_empty for q in parts):
++                continue
++            out[i:i + 1] = parts
++            cut = True
++            break
++    return {i: p for i, p in enumerate(out, 1)} if cut else None
++
++
+ def _adjacency(polys, ops, touch=0.35):
+     """Rooms are adjacent if their footprints come within a wall thickness of each other;
+     'via' lists the openings that connect them."""

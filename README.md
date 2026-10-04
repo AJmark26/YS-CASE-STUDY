@@ -92,7 +92,8 @@ for c in 1a8384c3f6 c7d28f72c6 c00a170fe1; do python -m ysplan data/$c -o out/${
 python -m ysplan data/1a8384c3f6 -o out/1a8384c3f6_lidar_nodrift --no-drift --no-damage
 python scripts/benchmark.py out bench                  # repeatability, openings, cross-tier, drift ablation
 python scripts/ceiling_repeat.py data/c7d28f72c6 bench/ceiling_repeat_c7d28f72c6.json --run out/c7d28f72c6_lidar
-python scripts/fixloop.py --data data --out out        # fix-loop rounds from their git tags
+python scripts/fixloop.py --data data --out out        # fix-loop rounds, from the commits before and after each fix
+python scripts/validate_plans.py out                   # every plan.json against docs/plan.schema.json
 ```
 
 The walk-in rehearsal cuts unseen-looking captures out of the samples and scores their plans
@@ -108,7 +109,8 @@ python scripts/walkin_check.py out/walkin/t1_bedroom:out/c00a170fe1_lidar out/wa
     out/walkin/t3_bedroom2:out/1a8384c3f6_lidar out/walkin/t4_ceiling_only:out/c7d28f72c6_lidar --json bench/walkin.json
 ```
 
-Every `plan.json` validates against [docs/plan.schema.json](docs/plan.schema.json).
+Every `plan.json` validates against [docs/plan.schema.json](docs/plan.schema.json)
+(`python scripts/validate_plans.py out` checks them all).
 
 ## How it works (LiDAR tier)
 

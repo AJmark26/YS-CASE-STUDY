@@ -2,7 +2,7 @@
 
 Fix: Square each room on its own before measuring its walls.
 
-Before: commit `1c3350e5e5` (tag fixloop-1-before). After: commit `c0c8046ad8` (tag fixloop-1-after). Regenerate with `python scripts/fixloop.py --rounds 1`.
+Before: commit `1c3350e5e5`. After: commit `c0c8046ad8`. Regenerate with `python scripts/fixloop.py --rounds 1`.
 
 | Measure | Before | After |
 | --- | --- | --- |

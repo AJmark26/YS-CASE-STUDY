@@ -99,7 +99,8 @@ opening on a parallel wall within 35 cm. Misses count as failures.
 
 The three matches pair different objects (widths 20 cm to 1.4 m apart). Fix-loop round 5
 (`docs/fix_loop.md`) has the analysis: of 24 openings found by one capture only, 10 are seen as
-gaps by the other capture but rejected because the wall beside them was seen only partly,
+gaps by the other capture but rejected by its jamb or depth checks (the diagnostic does not
+record which),
 8 lie on wall lines the other capture does not search, 4 are solid wall in the other capture
 (a closed door or a phantom) and 2 were never crossed by its rays.
 
