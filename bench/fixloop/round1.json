@@ -1,0 +1,77 @@
+{
+ "round": 1,
+ "gate": "Wall repeatability",
+ "fix": "Square each room on its own before measuring its walls",
+ "commits": [
+  "1c3350e5e5",
+  "c0c8046ad8"
+ ],
+ "before": {
+  "n_walls": 28,
+  "pass_rate": 0.357,
+  "median_abs_diff_cm": 1.72,
+  "median_abs_diff_pct": 1.09,
+  "within_ci95": 0.786,
+  "gate": "|diff| <= 1 cm or 0.5%",
+  "pairs": {
+   "1a8384c3f6~c7d28f72c6": {
+    "registration_fit": 0.814,
+    "n_walls": 17,
+    "pass_rate": 0.294,
+    "median_abs_diff_cm": 1.69,
+    "median_abs_diff_pct": 1.05,
+    "within_ci95": 0.706
+   },
+   "1a8384c3f6~c00a170fe1": {
+    "registration_fit": 0.819,
+    "n_walls": 4,
+    "pass_rate": 0.5,
+    "median_abs_diff_cm": 1.67,
+    "median_abs_diff_pct": 0.85,
+    "within_ci95": 0.75
+   },
+   "c7d28f72c6~c00a170fe1": {
+    "registration_fit": 0.988,
+    "n_walls": 7,
+    "pass_rate": 0.429,
+    "median_abs_diff_cm": 1.75,
+    "median_abs_diff_pct": 1.14,
+    "within_ci95": 1.0
+   }
+  }
+ },
+ "after": {
+  "n_walls": 29,
+  "pass_rate": 0.379,
+  "median_abs_diff_cm": 1.88,
+  "median_abs_diff_pct": 1.1,
+  "within_ci95": 0.828,
+  "gate": "|diff| <= 1 cm or 0.5%",
+  "pairs": {
+   "1a8384c3f6~c7d28f72c6": {
+    "registration_fit": 0.814,
+    "n_walls": 18,
+    "pass_rate": 0.222,
+    "median_abs_diff_cm": 2.26,
+    "median_abs_diff_pct": 1.55,
+    "within_ci95": 0.722
+   },
+   "1a8384c3f6~c00a170fe1": {
+    "registration_fit": 0.819,
+    "n_walls": 4,
+    "pass_rate": 0.75,
+    "median_abs_diff_cm": 0.74,
+    "median_abs_diff_pct": 0.44,
+    "within_ci95": 1.0
+   },
+   "c7d28f72c6~c00a170fe1": {
+    "registration_fit": 0.988,
+    "n_walls": 7,
+    "pass_rate": 0.571,
+    "median_abs_diff_cm": 0.84,
+    "median_abs_diff_pct": 0.7,
+    "within_ci95": 1.0
+   }
+  }
+ }
+}

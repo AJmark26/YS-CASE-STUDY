@@ -1,0 +1,153 @@
+{
+ "round": 3,
+ "gate": "Ceiling height",
+ "fix": "Ceiling level minus each room's own floor level",
+ "commits": [
+  "5eed22a10c",
+  "7b57f3597b"
+ ],
+ "before": {
+  "capture": "c7d28f72c6",
+  "split": "alternating 2 s blocks",
+  "gate": "spread <= 1.0 cm",
+  "rooms": [
+   {
+    "room": "R1",
+    "A": 2.446,
+    "B": 2.4561,
+    "sigma_A_cm": 0.71,
+    "sigma_B_cm": 0.71,
+    "spread_cm": 1.01,
+    "pass": false,
+    "inside_ci95": true
+   },
+   {
+    "room": "R2",
+    "A": 2.4603,
+    "B": 2.4559,
+    "sigma_A_cm": 0.71,
+    "sigma_B_cm": 0.71,
+    "spread_cm": 0.44,
+    "pass": true,
+    "inside_ci95": true
+   },
+   {
+    "room": "R3",
+    "A": 3.0793,
+    "B": 3.0835,
+    "sigma_A_cm": 0.71,
+    "sigma_B_cm": 0.71,
+    "spread_cm": 0.42,
+    "pass": true,
+    "inside_ci95": true
+   },
+   {
+    "room": "R4",
+    "A": 3.087,
+    "B": 3.0854,
+    "sigma_A_cm": 0.71,
+    "sigma_B_cm": 0.71,
+    "spread_cm": 0.16,
+    "pass": true,
+    "inside_ci95": true
+   },
+   {
+    "room": "R5",
+    "A": 2.3138,
+    "B": 2.3539,
+    "sigma_A_cm": 0.71,
+    "sigma_B_cm": 0.71,
+    "spread_cm": 4.01,
+    "pass": false,
+    "inside_ci95": false
+   },
+   {
+    "room": "R6",
+    "A": 3.0746,
+    "B": 3.0784,
+    "sigma_A_cm": 0.71,
+    "sigma_B_cm": 0.71,
+    "spread_cm": 0.38,
+    "pass": true,
+    "inside_ci95": true
+   }
+  ],
+  "rooms_in_both": 6,
+  "pass_rate": 0.667,
+  "median_spread_cm": 0.43,
+  "max_spread_cm": 4.01,
+  "inside_ci95": 0.833
+ },
+ "after": {
+  "capture": "c7d28f72c6",
+  "split": "alternating 2 s blocks",
+  "gate": "spread <= 1.0 cm",
+  "rooms": [
+   {
+    "room": "R1",
+    "A": 2.4632,
+    "B": 2.4718,
+    "sigma_A_cm": 1.04,
+    "sigma_B_cm": 0.63,
+    "spread_cm": 0.86,
+    "pass": true,
+    "inside_ci95": true
+   },
+   {
+    "room": "R2",
+    "A": 2.4634,
+    "B": 2.4684,
+    "sigma_A_cm": 0.92,
+    "sigma_B_cm": 0.94,
+    "spread_cm": 0.5,
+    "pass": true,
+    "inside_ci95": true
+   },
+   {
+    "room": "R3",
+    "A": 3.0758,
+    "B": 3.059,
+    "sigma_A_cm": 0.81,
+    "sigma_B_cm": 1.51,
+    "spread_cm": 1.68,
+    "pass": false,
+    "inside_ci95": true
+   },
+   {
+    "room": "R4",
+    "A": 3.0925,
+    "B": 3.0903,
+    "sigma_A_cm": 0.59,
+    "sigma_B_cm": 1.22,
+    "spread_cm": 0.22,
+    "pass": true,
+    "inside_ci95": true
+   },
+   {
+    "room": "R5",
+    "A": 2.3555,
+    "B": 2.3618,
+    "sigma_A_cm": 0.72,
+    "sigma_B_cm": 1.76,
+    "spread_cm": 0.63,
+    "pass": true,
+    "inside_ci95": true
+   },
+   {
+    "room": "R6",
+    "A": 3.0642,
+    "B": 3.0693,
+    "sigma_A_cm": 0.67,
+    "sigma_B_cm": 0.68,
+    "spread_cm": 0.51,
+    "pass": true,
+    "inside_ci95": true
+   }
+  ],
+  "rooms_in_both": 6,
+  "pass_rate": 0.833,
+  "median_spread_cm": 0.57,
+  "max_spread_cm": 1.68,
+  "inside_ci95": 1.0
+ }
+}

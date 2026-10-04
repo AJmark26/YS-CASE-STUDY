@@ -5,6 +5,11 @@ the number before and after. For each shipped round, `python scripts/fixloop.py`
 the commit before the fix and the commit after it into temporary worktrees and regenerates the
 numbers with each commit's own code. Rejected rounds are kept with their numbers.
 
+Rounds 1 and 3 change only the measurement, so `fixloop.py` runs both commits' measurement
+code on the current pipeline outputs. For round 1 that gives different numbers from the ones
+measured when the round shipped, because later commits changed the room outlines whose walls
+are compared; both are given below. Round 3 regenerates the same result it shipped with.
+
 | Round | Commit before | Commit after (the fix) |
 |---|---|---|
 | 1 | `1c3350e` | `c0c8046` |
@@ -13,8 +18,8 @@ numbers with each commit's own code. Rejected rounds are kept with their numbers
 
 | Round | Gate | Before | After | Outcome |
 |---|---|---|---|---|
-| 1 | Wall repeatability (1 cm or 0.5%) | 37.9% of 29 walls | 43.3% of 30 walls | shipped, short of the gate |
-| 2 | Wall repeatability | 43.3% | 12% to 30% for seven variants | rejected |
+| 1 | Wall repeatability (1 cm or 0.5%) | 35.7% of 28 walls (37.9% at the time) | 37.9% of 29 walls (43.3% at the time) | shipped, short of the gate |
+| 2 | Wall repeatability | 43.3% (at the time) | 12% to 30% for seven variants | rejected |
 | 3 | Ceiling spread (1 cm) | 4 of 6 rooms | 5 of 6 rooms | shipped, short of the gate |
 | 4 | Calibration of wall intervals | 86.7% inside 95% CI | 90% to 100%, but 2 to 10 times wider intervals | rejected |
 | 5 | Opening widths (2 cm on 85%) | 0 of 38 openings | 0 of 27 openings | shipped, prediction badly wrong |
@@ -33,9 +38,14 @@ was committed before any of its code.
   capture's face position depends on which part of the wall it saw.
 - **Fix.** Square each room on its own (the rotation within 4 degrees that piles its wall points
   up most sharply) and measure it in that frame.
-- **Result.** 37.9% to 43.3%; the bathroom pair 50% to 75%. The median difference over all
-  pairs got worse (1.43 to 1.60 cm), driven by the floor-only versus ceiling pair, where
-  outlines sit on furniture and curtains. Short of the gate because that second cause remains.
+- **Result.** At the time: 37.9% to 43.3%; the bathroom pair 50% to 75%. The median
+  difference over all pairs got worse (1.43 to 1.60 cm), driven by the floor-only versus
+  ceiling pair, where outlines sit on furniture and curtains. Short of the gate because that
+  second cause remains.
+- **Regenerated** on the current outputs (`bench/fixloop/round1.md`): 35.7% of 28 walls to
+  37.9% of 29; the bathroom pair again 50% to 75%, the bedroom pair 43% to 57%, and the
+  floor-only versus ceiling pair 29% to 22%; the median 1.7 to 1.9 cm. The fix still helps
+  the pairs it was aimed at and still loses on the pair whose outlines sit on furniture.
 
 ## Round 2: wider wall-face search (rejected)
 
@@ -58,7 +68,8 @@ more often than the right one. Numbers: `bench/fixloop/round2_face_search.json`.
 - **Fix.** Ceiling and floor are each a robust level inside the room, the height is their
   difference, and the interval includes the ceiling's relief across the room.
 - **Result.** 4 of 6 to 5 of 6 rooms within 1 cm; largest spread 3.97 to 1.68 cm; 6 of 6
-  inside their intervals (was 5 of 6). Ceiling values move by up to 3.5 cm, mostly from the
+  inside their intervals (was 5 of 6). Regenerated on the current outputs
+  (`bench/fixloop/round3.md`): the same, with R5's spread before at 4.01 cm. Ceiling values move by up to 3.5 cm, mostly from the
   floor offsets. R3 still spreads 1.7 cm: it is 3.06 m high, the farthest ceiling from the
   phone, and its two halves see different parts of it.
 

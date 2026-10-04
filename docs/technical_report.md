@@ -36,6 +36,11 @@ The video tier makes a depth map for every 40th frame (MapAnything, given the AR
 and intrinsics, so the depth is metric and consistent across views) and then runs the same
 geometry stages. The photo tier is described in section 3.
 
+<figure><img src="figures/plan_with_ceiling.png" style="width:68%"><figcaption>Figure 1. LiDAR-tier plan of the
+ceiling capture (215 s walk, one command, no settings): six rooms placed in one frame with wall
+lengths, floor areas, ceiling heights, doors (red) and wide openings (purple). Solid walls were
+measured; dashed ones are inferred where the wall was not seen. Grey: fused wall points.</figcaption></figure>
+
 ## 3. Tiers and device matrix
 
 {{tier design and device matrix from the photo and video work}}
@@ -109,13 +114,15 @@ Timing, on 4 CPU cores without a GPU: {{timing sentence}}
 ## 8. Fix loop
 
 Full declarations in `docs/fix_loop.md`; `python scripts/fixloop.py` checks out the commit
-before and after each shipped round and regenerates both numbers with each commit's own code.
+before and after each shipped round and regenerates both numbers with each commit's own code. Round 1
+is regenerated on the current outputs, whose room outlines later commits changed; its numbers
+when it shipped are in brackets.
 
 | Round | Gate | Root cause | Before | After | Outcome |
 |---|---|---|---|---|---|
-| 1 | Wall repeatability | drift leaves single rooms turned 0.3 to 2.4° against the plan axes | {{r1_before}} | {{r1_after}} | shipped, short of the gate |
-| 2 | Wall repeatability | furniture hides the wall face | 43.3% | 12 to 30% (7 variants) | rejected |
-| 3 | Ceiling spread | one floor for the whole home; densest bin flips on a two-level ceiling | {{r3_before}} | {{r3_after}} | shipped, one room short |
+| 1 | Wall repeatability | drift leaves single rooms turned 0.3 to 2.4° against the plan axes | 35.7% (37.9% when shipped) | 37.9% (43.3% when shipped) | shipped, short of the gate |
+| 2 | Wall repeatability | furniture hides the wall face | 43.3% (then) | 12 to 30% (7 variants) | rejected |
+| 3 | Ceiling spread | one floor for the whole home; densest bin flips on a two-level ceiling | 4 of 6 rooms; largest 4.0 cm | 5 of 6; largest 1.7 cm | shipped, one room short |
 | 4 | Wall calibration | a second surface near the face | 86.7% inside | 90 to 100%, 2 to 10x wider | rejected |
 | 5 | Opening widths (declared in advance) | detection follows the room split; jambs moved by clutter | 0 of 38 | 0 of 27 | shipped; prediction badly wrong |
 
