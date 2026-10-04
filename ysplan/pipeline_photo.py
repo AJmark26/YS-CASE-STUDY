@@ -300,7 +300,7 @@ def folder_segment(pc, owner, min_cells=200):
 
         for nme in names:
             ids = [i for i, o in enumerate(owner) if o == nme]
-            door = [i for i in ids if str(pc.names[i]).startswith("door-from-")]
+            door = [i for i in ids if Path(str(pc.names[i])).name.startswith("door-from-")]
             v = carve([i for i in ids if i not in door]).astype(float)
             for i in door:
                 X, Z = pc.T_wc[i, 0, 3], pc.T_wc[i, 2, 3]
@@ -314,7 +314,7 @@ def folder_segment(pc, owner, min_cells=200):
         seen = ndi.binary_fill_holes(seen) & ~wd
         lab = np.where(seen, votes.argmax(0) + 1, 0)
         out = np.zeros_like(lab)
-        k = 0
+        k, kept = 0, []
         for i in range(1, len(names) + 1):            # keep each folder's largest blob
             cc, n = ndi.label(lab == i)
             if n == 0:
@@ -324,7 +324,8 @@ def folder_segment(pc, owner, min_cells=200):
                 continue
             k += 1
             out[cc == (int(np.argmax(sizes)) + 1)] = k
-        seen_state.update(G=G, labels=out)
+            kept.append(names[i - 1])
+        seen_state.update(G=G, labels=out, names=kept)
         return out
     seg.state = seen_state
     return seg
@@ -409,6 +410,30 @@ def door_views(pc, yaw, floor_y):
     return out
 
 
+def plan_transform(yaw, floor_y, k, t):
+    """4x4 taking a room's capture world (y up) into the stitched plan as a 3D frame:
+    x = plan x, y = height above the floor, z = plan y."""
+    c, s = np.cos(yaw), np.sin(yaw)
+    A = np.array([[c, 0, s, 0], [0, 1, 0, -floor_y], [-s, 0, c, 0], [0, 0, 0, 1.0]])
+    cs, sn = np.cos(k * np.pi / 2), np.sin(k * np.pi / 2)
+    B = np.array([[cs, 0, -sn, t[0]], [0, 1, 0, 0], [sn, 0, cs, t[1]], [0, 0, 0, 1.0]])
+    return B @ A
+
+
+def merged_capture(root, parts):
+    """One PhotoCapture of all rooms in the stitched plan frame. parts: [(name, pc, 4x4)]."""
+    T, K, depths, masks, names, owner = [], [], {}, {}, [], []
+    for name, pc, M in parts:
+        for i in range(len(pc.T_wc)):
+            j = len(T)
+            T.append(M @ pc.T_wc[i])
+            K.append(pc.K[i])
+            depths[j], masks[j] = pc.depths[i], pc.masks[i]
+            names.append(f"{name}/{pc.names[i]}")
+            owner.append(name)
+    return PhotoCapture(Path(root), np.array(T), np.array(K), depths, masks, names), owner
+
+
 def run(capture_dir, log=print, cache=None, gap=1.0):
     """capture_dir holds one sub-folder of photos per room. Each room is reconstructed on its own
     (all photos of a whole home in one MapAnything pass need more than 15 GB of RAM on CPU), then
@@ -420,7 +445,7 @@ def run(capture_dir, log=print, cache=None, gap=1.0):
     from . import pipeline_lidar
     capture_dir = Path(capture_dir)
     folders = sorted(p for p in capture_dir.iterdir() if p.is_dir() and recon.list_images(p))
-    own, diags, views, cams = {}, {}, {}, {}
+    own, diags, views, cams, frames = {}, {}, {}, {}, {}
     t0 = time.time()
     for f in folders:
         paths = recon.list_images(f)
@@ -450,6 +475,7 @@ def run(capture_dir, log=print, cache=None, gap=1.0):
             w["id"] = f"{f.name}-W{w['id'].split('-W')[-1]}"
         r["yaw_rad_in_own_frame"] = res["alignment"]["yaw_rad"]
         own[f.name] = (r, cloud, U)
+        frames[f.name] = (pc, res["alignment"]["yaw_rad"], res["alignment"]["floor_y_world"])
         views[f.name] = door_views(pc, res["alignment"]["yaw_rad"], res["alignment"]["floor_y_world"])
         cams[f.name] = ([str(n) for n in pc.names], plan_xy(pc.T_wc[:, :3, 3], res["alignment"]["yaw_rad"]))
         log(f"[photo] {f.name}: bbox {r['bbox_m']} m, area {r['floor_area_m2']['value']:.2f} m2, "
@@ -466,6 +492,16 @@ def run(capture_dir, log=print, cache=None, gap=1.0):
         pose[n] = (0, np.array([x0 - b[0], -b[1]]))
         x0 += b[2] - b[0] + gap
     linked = {n for l in links for n in l["rooms"]}
+    merged = _merged_plan(capture_dir, frames, pose, own, links, log) if links else None
+    if merged is not None:
+        result, cloud, U = merged
+        result["photo"] = {"per_room": diags, "scale_sigma_rel": SCALE_SIGMA,
+                           "stitched": not result.pop("_unstitched"), "links": links,
+                           "unstitched_rooms": sorted(n for n in own if n not in linked),
+                           "one_sided_doorways": one_sided, "cameras": result.pop("_cameras")}
+        result["timing_s"]["total_s"] = round(time.time() - t0, 1)
+        _log_links(log, links, linked, own)
+        return widen(result), cloud, U
     out_rooms, clouds, Us, ops, cameras = [], [], [], [], {}
     for n in sorted(own):
         r, cloud, U = own[n]
@@ -487,11 +523,7 @@ def run(capture_dir, log=print, cache=None, gap=1.0):
     for i, o in enumerate(ops, 1):
         o["id"] = f"{o['type'][0].upper()}{i}"
     unstitched = sorted(n for n in own if n not in linked)
-    if links:
-        log(f"[photo] stitched {len(linked)} of {len(own)} rooms via doorways "
-            + ", ".join("-".join(l["rooms"]) for l in links))
-    if unstitched:
-        log(f"[photo] not stitched (no doorway photo from both sides): {', '.join(unstitched)}")
+    _log_links(log, links, linked, own)
     result = {"schema_version": "1.0", "tier": "photo", "units": "m",
               "frame": "gravity-aligned plan; rooms joined at doorways seen from both sides "
                        "(see photo.stitched); unlinked rooms are laid out to the right",
@@ -506,6 +538,96 @@ def run(capture_dir, log=print, cache=None, gap=1.0):
     cloud = np.concatenate(clouds) if clouds else np.zeros((0, 2))
     U = np.concatenate(Us) if Us else np.zeros((0, 3))
     return widen(result), cloud, U
+
+
+def _log_links(log, links, linked, own):
+    if links:
+        log(f"[photo] stitched {len(linked)} of {len(own)} rooms via doorways "
+            + ", ".join("-".join(l["rooms"]) for l in links))
+    rest = sorted(n for n in own if n not in linked)
+    if rest:
+        log(f"[photo] not stitched (no doorway photo from both sides): {', '.join(rest)}")
+
+
+def _merged_plan(capture_dir, frames, pose, own, links, log):
+    """Second pass on all rooms at once, in the stitched frame: every photo's depth goes into one
+    capture and the shared geometry runs again, with each folder claiming the floor its own
+    photos see. Where two rooms' outlines overlapped (a photo looking through an open passage
+    sees the next room's floor), the cell goes to the room whose photos saw it most, and
+    openings and adjacency are found between rooms. Returns None if a stitched room loses its
+    outline in the joint pass (the per-room outlines are used then)."""
+    from . import pipeline_lidar
+    linked = {n for l in links for n in l["rooms"]}
+    parts = [(n, pc, plan_transform(yaw, fy, *pose[n])) for n, (pc, yaw, fy) in sorted(frames.items())]
+    pc, owner = merged_capture(capture_dir, parts)
+    seg = folder_segment(pc, owner)
+    res, cloud, U = pipeline_lidar.run(capture_dir, drift=False, cap=pc, tier="photo", log=lambda *a: None, segment=seg)
+    G, labels, kept = seg.state["G"], seg.state["labels"], seg.state["names"]
+    ids = {}
+    for r in res["rooms"]:
+        i, j = G.to_cell(r["label_point"])
+        lab = labels[i, j] if 0 <= i < labels.shape[0] and 0 <= j < labels.shape[1] else 0
+        if lab > 0:
+            ids[r["id"]] = kept[lab - 1]
+    found = set(ids.values())
+    if not linked <= found or len(found) != len(ids):
+        log(f"[photo] joint pass lost {sorted(linked - found)}; keeping per-room outlines")
+        return None
+    # the joint pass re-finds the Manhattan yaw (0-90 deg); undo its quarter turns so its rooms
+    # stay in the stitched frame, where the unstitched rooms are laid out
+    j = int(round(res["alignment"]["yaw_rad"] / (np.pi / 2)))
+    kb, z = j % 4, np.zeros(2)
+    res["alignment"]["yaw_rad"] -= j * np.pi / 2
+    res["rooms"] = [_move_room(r, kb, z) for r in res["rooms"]]
+    res["openings"] = [_move_opening(o, kb, z) for o in res["openings"]]
+    cloud = stitch.apply_xy(cloud, kb, z)
+    Uxy = stitch.apply_xy(U[:, [0, 2]], kb, z)
+    U = np.stack([Uxy[:, 0], U[:, 1], Uxy[:, 1]], 1)
+    rooms_ = []
+    for r in res["rooms"]:
+        n = ids[r["id"]]
+        if n not in linked:
+            continue                                     # unstitched: keep its own outline (below)
+        r = dict(r, id=n, walls=[dict(w, id=f"{n}-W{w['id'].split('-W')[-1]}") for w in r["walls"]])
+        k, t = pose[n]
+        r["stitched"] = n in linked
+        r["pose_in_plan"] = {"rotation_deg": 90 * k, "offset_m": [round(float(t[0]), 4), round(float(t[1]), 4)]}
+        r["yaw_rad_in_own_frame"] = own[n][0]["yaw_rad_in_own_frame"]
+        rooms_.append(r)
+    ops = []
+    for o in res["openings"]:
+        o["rooms"] = [ids.get(x, x) for x in o.get("rooms", [])]
+        if set(o["rooms"]) <= linked:
+            ops.append(o)
+    for n in sorted(set(own) - linked):                 # unstitched rooms: measured on their own
+        k, t = pose[n]
+        r = _move_room(own[n][0], k, t)
+        r["stitched"] = False
+        r["pose_in_plan"] = {"rotation_deg": 90 * k, "offset_m": [round(float(t[0]), 4), round(float(t[1]), 4)]}
+        for o in r.pop("openings", []):
+            ops.append(dict(_move_opening(o, k, t), rooms=[n]))
+        rooms_.append(r)
+    for i, o in enumerate(ops, 1):
+        o["id"] = f"{o['type'][0].upper()}{i}"
+    adjacency = []
+    for a in res["adjacency"]:
+        a["rooms"] = [ids.get(x, x) for x in a["rooms"]]
+        if set(a["rooms"]) <= linked:
+            adjacency.append(a)
+    for l in links:                                     # every doorway link is an adjacency
+        if not any(sorted(a["rooms"]) == l["rooms"] for a in adjacency):
+            adjacency.append({"rooms": l["rooms"], "via": []})
+    yaw = res["alignment"]["yaw_rad"]
+    cams = {}
+    for i, (nm, o) in enumerate(zip(pc.names, owner)):
+        x, y = plan_xy(pc.T_wc[i, :3, 3], yaw)[0]
+        cams.setdefault(o, []).append({"photo": Path(nm).name, "xy": [round(float(x), 3), round(float(y), 3)]})
+    res.update(rooms=sorted(rooms_, key=lambda r: r["id"]), openings=ops, adjacency=adjacency, _cameras=cams,
+               _unstitched=bool(set(own) - linked),
+               frame="gravity-aligned plan; rooms joined at doorways seen from both sides (photo.links), "
+                     "then measured together; rooms without a doorway pair are laid out to the right")
+    res["capture"] = {"path": str(capture_dir), "rooms": len(own), "photos": len(pc.names)}
+    return res, cloud, U
 
 
 def r_id_in(o, rooms_, r):
