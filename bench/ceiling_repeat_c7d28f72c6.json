@@ -45,11 +45,11 @@
   },
   {
    "room": "R5",
-   "A": 2.3549,
-   "B": 2.3621,
+   "A": 2.3555,
+   "B": 2.3618,
    "sigma_A_cm": 0.72,
    "sigma_B_cm": 1.76,
-   "spread_cm": 0.72,
+   "spread_cm": 0.63,
    "pass": true,
    "inside_ci95": true
   },
@@ -66,7 +66,7 @@
  ],
  "rooms_in_both": 6,
  "pass_rate": 0.833,
- "median_spread_cm": 0.61,
+ "median_spread_cm": 0.57,
  "max_spread_cm": 1.68,
  "inside_ci95": 1.0
 }

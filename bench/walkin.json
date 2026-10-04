@@ -1,0 +1,248 @@
+[
+ {
+  "test": "out/walkin/t1_bedroom",
+  "reference": "out/c00a170fe1_lidar",
+  "registration_fit": 0.998,
+  "runtime_s": 12.5,
+  "duration_s": 20.97,
+  "notes": [],
+  "rooms": [
+   {
+    "room": "R1",
+    "ref_room": "R1",
+    "iou": 0.766,
+    "area_m2": 11.9648,
+    "ref_area_m2": 14.1254,
+    "ceiling_m": null,
+    "ref_ceiling_m": null
+   }
+  ],
+  "walls": [
+   {
+    "room": "R1",
+    "wall": "W5",
+    "ref_wall": "R1-W2",
+    "length_m": 5.4426,
+    "ref_length_m": 5.3143,
+    "diff_cm": 12.83,
+    "inside_ci95": false
+   },
+   {
+    "room": "R1",
+    "wall": "W10",
+    "ref_wall": "R1-W5",
+    "length_m": 1.7072,
+    "ref_length_m": 1.5863,
+    "diff_cm": 12.09,
+    "inside_ci95": false
+   }
+  ],
+  "summary": {
+   "rooms_found": 1,
+   "rooms_matched": 1,
+   "walls_compared": 2,
+   "median_abs_diff_cm": 12.46,
+   "within_2cm": 0.0,
+   "inside_ci95": 0.0
+  }
+ },
+ {
+  "test": "out/walkin/t2_three_rooms",
+  "reference": "out/c7d28f72c6_lidar",
+  "registration_fit": 0.998,
+  "runtime_s": 24.7,
+  "duration_s": 40.97,
+  "notes": [
+   "intrinsics from camera_matrix.csv (odometry.csv has no per-frame intrinsics)"
+  ],
+  "rooms": [
+   {
+    "room": "R1",
+    "ref_room": "R2",
+    "iou": 0.394,
+    "area_m2": 17.1199,
+    "ref_area_m2": 7.5691,
+    "ceiling_m": 2.4587,
+    "ref_ceiling_m": 2.4647
+   },
+   {
+    "room": "R2",
+    "ref_room": "R6",
+    "iou": 0.506,
+    "area_m2": 8.5927,
+    "ref_area_m2": 4.3455,
+    "ceiling_m": 3.0624,
+    "ref_ceiling_m": 3.0692
+   },
+   {
+    "room": "R3",
+    "ref_room": "R3",
+    "iou": 0.774,
+    "area_m2": 4.6135,
+    "ref_area_m2": 5.9062,
+    "ceiling_m": 3.069,
+    "ref_ceiling_m": 3.0651
+   }
+  ],
+  "walls": [
+   {
+    "room": "R3",
+    "wall": "W5",
+    "ref_wall": "R3-W8",
+    "length_m": 1.5361,
+    "ref_length_m": 1.58,
+    "diff_cm": -4.39,
+    "inside_ci95": true
+   }
+  ],
+  "summary": {
+   "rooms_found": 3,
+   "rooms_matched": 2,
+   "walls_compared": 1,
+   "median_abs_diff_cm": 4.39,
+   "within_2cm": 0.0,
+   "inside_ci95": 1.0
+  }
+ },
+ {
+  "test": "out/walkin/t3_bedroom2",
+  "reference": "out/1a8384c3f6_lidar",
+  "registration_fit": 0.996,
+  "runtime_s": 12.3,
+  "duration_s": 18.99,
+  "notes": [],
+  "rooms": [
+   {
+    "room": "R1",
+    "ref_room": "R2",
+    "iou": 0.681,
+    "area_m2": 15.9355,
+    "ref_area_m2": 11.0731,
+    "ceiling_m": null,
+    "ref_ceiling_m": null
+   }
+  ],
+  "walls": [
+   {
+    "room": "R1",
+    "wall": "W1",
+    "ref_wall": "R2-W7",
+    "length_m": 2.7264,
+    "ref_length_m": 2.6865,
+    "diff_cm": 3.99,
+    "inside_ci95": true
+   },
+   {
+    "room": "R1",
+    "wall": "W3",
+    "ref_wall": "R2-W9",
+    "length_m": 1.1476,
+    "ref_length_m": 1.1456,
+    "diff_cm": 0.2,
+    "inside_ci95": true
+   },
+   {
+    "room": "R1",
+    "wall": "W7",
+    "ref_wall": "R2-W3",
+    "length_m": 0.8232,
+    "ref_length_m": 0.8415,
+    "diff_cm": -1.83,
+    "inside_ci95": true
+   },
+   {
+    "room": "R1",
+    "wall": "W8",
+    "ref_wall": "R2-W4",
+    "length_m": 2.29,
+    "ref_length_m": 2.1674,
+    "diff_cm": 12.26,
+    "inside_ci95": false
+   },
+   {
+    "room": "R1",
+    "wall": "W9",
+    "ref_wall": "R2-W5",
+    "length_m": 1.0866,
+    "ref_length_m": 1.0536,
+    "diff_cm": 3.3,
+    "inside_ci95": true
+   },
+   {
+    "room": "R1",
+    "wall": "W10",
+    "ref_wall": "R2-W6",
+    "length_m": 1.0643,
+    "ref_length_m": 1.0694,
+    "diff_cm": -0.51,
+    "inside_ci95": true
+   }
+  ],
+  "summary": {
+   "rooms_found": 1,
+   "rooms_matched": 1,
+   "walls_compared": 6,
+   "median_abs_diff_cm": 2.56,
+   "within_2cm": 0.5,
+   "inside_ci95": 0.833
+  }
+ },
+ {
+  "test": "out/walkin/t4_ceiling_only",
+  "reference": "out/c7d28f72c6_lidar",
+  "registration_fit": 0.965,
+  "runtime_s": 19.1,
+  "duration_s": 31.99,
+  "notes": [
+   "intrinsics from camera_matrix.csv (odometry.csv has no per-frame intrinsics)"
+  ],
+  "rooms": [
+   {
+    "room": "R1",
+    "ref_room": "R4",
+    "iou": 0.538,
+    "area_m2": 10.0815,
+    "ref_area_m2": 5.4468,
+    "ceiling_m": null,
+    "ref_ceiling_m": 3.0918
+   },
+   {
+    "room": "R2",
+    "ref_room": "R5",
+    "iou": 0.589,
+    "area_m2": 8.2502,
+    "ref_area_m2": 5.0348,
+    "ceiling_m": null,
+    "ref_ceiling_m": 2.3651
+   },
+   {
+    "room": "R3",
+    "ref_room": "R2",
+    "iou": 0.36,
+    "area_m2": 6.2403,
+    "ref_area_m2": 7.5691,
+    "ceiling_m": null,
+    "ref_ceiling_m": 2.4647
+   }
+  ],
+  "walls": [
+   {
+    "room": "R1",
+    "wall": "W1",
+    "ref_wall": "R4-W2",
+    "length_m": 3.4415,
+    "ref_length_m": 2.0871,
+    "diff_cm": 135.44,
+    "inside_ci95": false
+   }
+  ],
+  "summary": {
+   "rooms_found": 3,
+   "rooms_matched": 2,
+   "walls_compared": 1,
+   "median_abs_diff_cm": 135.44,
+   "within_2cm": 0.0,
+   "inside_ci95": 0.0
+  }
+ }
+]
