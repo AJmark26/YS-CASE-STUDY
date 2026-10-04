@@ -1,7 +1,7 @@
-"""Regenerate the fix-loop before/after numbers from git tags.
+"""Regenerate the fix-loop before/after numbers from the commits before and after each fix.
 
-Each round names a gate, a commit before the fix and a commit after it (tagged
-fixloop-<n>-before and fixloop-<n>-after). Both commits are checked out into temporary
+Each round names a gate, a commit before the fix and a commit after it (listed in COMMITS
+below, and tagged fixloop-<n>-before and fixloop-<n>-after in the author's clone). Both commits are checked out into temporary
 worktrees and each one's own scripts produce the numbers, so nothing here can quietly make
 the "before" look worse.
 
@@ -35,6 +35,8 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+# round: (commit before the fix, commit after it); the same commits as the fixloop-<n>-* tags
+COMMITS = {1: ("1c3350e5e5", "c0c8046ad8"), 3: ("5eed22a10c", "7b57f3597b"), 5: ("a79bf15331", "e803d09280")}
 CEILING_CAPTURE = "c7d28f72c6"
 CAPTURES = ["1a8384c3f6", "c7d28f72c6", "c00a170fe1"]
 
@@ -150,12 +152,12 @@ def main():
     for n in a.rounds:
         gate, fix, make = ROUNDS[n]
         run, rows = make(a)
-        tags = (f"fixloop-{n}-before", f"fixloop-{n}-after")
-        res = {"round": n, "gate": gate, "fix": fix, "tags": tags,
+        tags = COMMITS[n]
+        res = {"round": n, "gate": gate, "fix": fix, "commits": tags,
                "before": at_tag(tags[0], run), "after": at_tag(tags[1], run)}
         (d / f"round{n}.json").write_text(json.dumps(res, indent=1))
         lines = [f"# Fix loop, round {n}: {gate}", "", f"Fix: {fix}.", "",
-                 f"Before: `{tags[0]}`. After: `{tags[1]}`. Regenerate with "
+                 f"Before: commit `{tags[0]}` (tag fixloop-{n}-before). After: commit `{tags[1]}` (tag fixloop-{n}-after). Regenerate with "
                  f"`python scripts/fixloop.py --rounds {n}`.", "",
                  "| Measure | Before | After |", "| --- | --- | --- |"]
         for k, label, f, u in rows:

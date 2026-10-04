@@ -1,9 +1,15 @@
 # Fix loop
 
 Every round names a gate and the failing number, a root cause with its evidence, the fix, and
-the number before and after. Rounds that shipped have git tags `fixloop-<n>-before` and
-`fixloop-<n>-after`; `python scripts/fixloop.py` checks both tags out and regenerates the
-numbers with each tag's own code. Rejected rounds are kept with their numbers.
+the number before and after. For each shipped round, `python scripts/fixloop.py` checks out
+the commit before the fix and the commit after it into temporary worktrees and regenerates the
+numbers with each commit's own code. Rejected rounds are kept with their numbers.
+
+| Round | Commit before | Commit after (the fix) |
+|---|---|---|
+| 1 | `1c3350e` | `c0c8046` |
+| 3 | `5eed22a` | `7b57f35` |
+| 5 | `a79bf15` (declaration) | `e803d09` |
 
 | Round | Gate | Before | After | Outcome |
 |---|---|---|---|---|
@@ -111,8 +117,8 @@ errors come from the outline taking a different jog, not from a second surface a
 | Within 2 cm (the gate counts misses as failures) | 0% | 15 to 25% | 0% |
 | Matched differences inside the 95% interval | {{b5_ci}} | 80% or more | {{a5_ci}} |
 
-Regenerate with `python scripts/fixloop.py --rounds 5` (tags `fixloop-5-before`,
-`fixloop-5-after`; tables in `bench/fixloop/round5.md`).
+Regenerate with `python scripts/fixloop.py --rounds 5` (commits `a79bf15` and `e803d09`;
+tables in `bench/fixloop/round5.md`).
 
 **Post-mortem.** The prediction was badly wrong: fewer openings are found by both captures, not
 more, and the few that are matched are different objects (their widths differ by 20 cm to
