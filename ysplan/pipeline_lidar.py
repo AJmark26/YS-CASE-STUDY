@@ -41,7 +41,8 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high
     # rays ending on the ceiling also prove the floor below them is open (captures that look up a
     # lot see little floor); they stay inside the room unless they pass through a high window
     c_high = rooms.carve(G, cap, poses, carve_ids, end_h=(2.0, 3.6)) if high_rays else 0
-    t = poses[frames, :3, 3]
+    # the walked path uses every tracked frame, not only the keyframes that carry depth (video)
+    t = poses[np.where(valid)[0], :3, 3]
     c, s = np.cos(yaw), np.sin(yaw)
     traj = np.stack([t[:, 0] * c + t[:, 2] * s, -t[:, 0] * s + t[:, 2] * c], 1)
     free, walls = rooms.free_space(G, G.to_cell(traj), c_low + c_high, wall_count=8 if tier == "lidar" else "p70")

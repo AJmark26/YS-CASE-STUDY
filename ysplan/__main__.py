@@ -50,9 +50,13 @@ def main(argv=None):
     ap.add_argument("--no-drift", action="store_true", help="use raw ARKit poses (ablation)")
     ap.add_argument("--no-damage", action="store_true", help="skip damage detection (LiDAR tier)")
     ap.add_argument("--wet", nargs="*", default=None, help="room ids that are wet rooms (default: small rooms)")
+    ap.add_argument("--no-cache", action="store_true", help="recompute learned depth even if cached")
+    ap.add_argument("--video-depth", choices=["mapanything", "mono"], default="mapanything",
+                    help="video tier depth source (mono = the earlier monocular baseline, for ablation)")
     a = ap.parse_args(argv)
     tier = a.tier or detect_tier(a.capture)
-    out = a.out or Path("out") / f"{a.capture.stem}_{tier}{'_nodrift' if a.no_drift else ''}"
+    tag = "_mono" if tier == "video" and a.video_depth == "mono" else ""
+    out = a.out or Path("out") / f"{a.capture.stem}_{tier}{tag}{'_nodrift' if a.no_drift else ''}"
     out.mkdir(parents=True, exist_ok=True)
     if tier in ("lidar", "video"):
         from . import io_stray
@@ -69,7 +73,8 @@ def main(argv=None):
         np.save(out / "poses_world.npy", pipeline_lidar.run.poses.astype(np.float32))   # drift-corrected camera->world
     elif tier == "video":
         from . import pipeline_lidar, pipeline_video
-        vc = pipeline_video.build(a.capture)
+        vc = pipeline_video.build(a.capture, depth=a.video_depth,
+                                  cache=None if a.no_cache else out / "video_depths.npz")
         result, cloud, U = pipeline_lidar.run(a.capture, drift=not a.no_drift, cap=vc, tier="video")
         result["video"] = vc.stats
     else:
