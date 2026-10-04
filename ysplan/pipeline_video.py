@@ -99,7 +99,7 @@ def mapanything_depths(cap, T, kfs, video, window=8, log=print):
     from . import recon
     fr = mono.read_frames(video, kfs)
     kfs = [k for k in kfs if k in fr]
-    depths, ratios = {}, []
+    depths, echo = {}, []
     for w0 in range(0, len(kfs), window):
         ids = kfs[w0:w0 + window]
         if len(ids) < 2:                          # a lone last keyframe joins the previous window
@@ -112,6 +112,7 @@ def mapanything_depths(cap, T, kfs, video, window=8, log=print):
         with torch.no_grad():
             preds = recon.model().infer(preprocess_inputs(views), memory_efficient_inference=False,
                                         use_amp=False, apply_mask=True, mask_edges=True)
+        P0 = preds[0]["camera_poses"][0].numpy().astype(np.float64)
         for i, p in zip(ids, preds):
             X = p["pts3d_cam"][0].numpy().reshape(-1, 3)
             m = p["mask"][0, ..., 0].numpy().reshape(-1).astype(bool) & (X[:, 2] > 0.1)
@@ -126,10 +127,15 @@ def mapanything_depths(cap, T, kfs, video, window=8, log=print):
             np.minimum.at(d, v[ok] * DW + u[ok], X[ok, 2].astype(np.float32))
             d[~np.isfinite(d)] = 0
             depths[i] = d.reshape(DH, DW)
-            ratios.append(float(np.linalg.norm(p["camera_poses"][0, :3, 3].numpy() - T[i][:3, 3])))
+            # MapAnything returns poses in its own frame (first view at the origin), so the given
+            # poses are compared relative to the window's first view
+            if i != ids[0]:
+                rel_out = np.linalg.solve(P0, p["camera_poses"][0].numpy().astype(np.float64))
+                rel_in = np.linalg.solve(T[ids[0]], T[i])
+                echo.append(float(np.linalg.norm(rel_out[:3, 3] - rel_in[:3, 3])))
         log(f"[video] MapAnything window {w0 // window + 1}/{-(-len(kfs) // window)}: "
             f"{len(ids)} keyframes in {time.time() - t0:.0f} s")
-    return depths, {"pose_echo_err_cm_median": round(100 * float(np.median(ratios)), 2) if ratios else None}
+    return depths, {"pose_echo_err_cm_median": round(100 * float(np.median(echo)), 2) if echo else None}
 
 
 def build(capture_dir, kf_step=None, chain_step=3, max_res=0.10, min_pts=20, log=print, depth="mapanything",
