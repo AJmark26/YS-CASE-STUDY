@@ -22,6 +22,21 @@ bash scripts/fetch_weights.sh            # monocular depth model for the video t
 
 On a headless Linux box Open3D also needs `apt install libegl1 libgl1`.
 
+The video and photo tiers get their best depth from learned models (MapAnything and MoGe-2),
+installed separately because they are large (about 6 GB with PyTorch on CPU):
+
+```
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+pip install -r requirements-learned.txt
+bash scripts/fetch_learned.sh
+```
+
+Without them the video tier falls back to the monocular model above and says so. The default
+MapAnything checkpoint is licensed CC-BY-NC (non-commercial use). For a commercial deployment
+set `YS_MAPANYTHING=facebook/map-anything-apache` (Apache-2.0); on the sample frames that
+checkpoint's depth comes out 27 to 32% short of LiDAR, so it would need a scale correction or
+fine-tuning.
+
 ## Run on the sample data
 
 Unzip each Stray Scanner capture and point the CLI at the folder that holds `odometry.csv`:
