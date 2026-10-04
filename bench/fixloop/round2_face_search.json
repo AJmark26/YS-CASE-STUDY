@@ -1,0 +1,15 @@
+{
+ "question": "Wall outlines can sit several cm inside the real wall (synthetic stain test on c00a170fe1 R2-W6: wall points peak 8 cm behind the outline). A fixed +-5 cm window around the outline then measures the face too far in. Does searching wider for the actual surface help?",
+ "baseline": {"variant": "median of points within +-5 cm of the outline (fix loop 1)", "pass_rate": 0.433, "median_abs_diff_cm": 1.60, "within_ci95": 0.867, "n_walls": 30},
+ "variants": [
+  {"variant": "nearest histogram peak, 12 cm out / 6 cm in", "pass_rate": 0.158, "median_abs_diff_cm": 3.12, "within_ci95": 0.395, "n_walls": 38},
+  {"variant": "strongest peak, 12 cm out / 6 cm in", "pass_rate": 0.167, "median_abs_diff_cm": 2.64, "within_ci95": 0.381, "n_walls": 42},
+  {"variant": "outermost peak, 12 cm out / 6 cm in", "pass_rate": 0.171, "median_abs_diff_cm": 2.52, "within_ci95": 0.439, "n_walls": 41},
+  {"variant": "most wall-like peak (coverage x height span), 12 / 6 cm", "pass_rate": 0.119, "median_abs_diff_cm": 2.69, "within_ci95": 0.357, "n_walls": 42},
+  {"variant": "strongest peak within +-5 cm", "pass_rate": 0.185, "median_abs_diff_cm": 4.21, "within_ci95": 0.37, "n_walls": 27},
+  {"variant": "nearest peak, 8 cm out / 4 cm in", "pass_rate": 0.278, "median_abs_diff_cm": 1.66, "within_ci95": 0.694, "n_walls": 36},
+  {"variant": "measure walls only above furniture height (1.0-2.1 m), outlines from 1.0-2.0 m", "pass_rate": 0.30, "median_abs_diff_cm": 2.46, "within_ci95": 0.80, "n_walls": 10}
+ ],
+ "decision": "Rejected. Every wider search lets the two captures lock onto different surfaces near the wall (curtain, wardrobe face, skirting, the wall itself), so agreement drops from 43% to 12-28%. Kept the +-5 cm window. Its known weakness, inheriting outline error when clutter pulls the outline inwards, is recorded as an open issue: the fix belongs in the outline (wall-line detection), not in the face estimator.",
+ "no_signed_scale_bias": "Median signed difference per capture pair stays within +-1.1% in every variant, with no consistent sign, so the disagreement is surface selection and local drift, not a scale error between captures."
+}
