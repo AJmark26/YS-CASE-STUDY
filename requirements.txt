@@ -4,3 +4,5 @@ opencv-python-headless>=4.9
 open3d>=0.18
 shapely>=2.0
 matplotlib>=3.8
+onnxruntime>=1.17
+pillow>=10.0
