@@ -17,7 +17,7 @@ numbers with each commit's own code. Rejected rounds are kept with their numbers
 | 2 | Wall repeatability | 43.3% | 12% to 30% for seven variants | rejected |
 | 3 | Ceiling spread (1 cm) | 4 of 6 rooms | 5 of 6 rooms | shipped, short of the gate |
 | 4 | Calibration of wall intervals | 86.7% inside 95% CI | 90% to 100%, but 2 to 10 times wider intervals | rejected |
-| 5 | Opening widths (2 cm on 85%) | 0 of {{b5_n}} openings | 0 of {{a5_n}} openings | shipped, prediction badly wrong |
+| 5 | Opening widths (2 cm on 85%) | 0 of 38 openings | 0 of 27 openings | shipped, prediction badly wrong |
 
 Rounds 1 to 3 were run before this file existed, and no numeric prediction was written down
 for them before the fix shipped. Round 5 is the first one declared in advance: its prediction
@@ -112,11 +112,13 @@ errors come from the outline taking a different jog, not from a second surface a
 
 | Measure (3 capture pairs) | Before | Predicted | After |
 |---|---|---|---|
-| Openings either capture reports in the area both cover | {{b5_n}} | | {{a5_n}} |
-| Found by both captures | {{b5_m}} | about 15 | {{a5_m}} |
+| Openings either capture reports in the area both cover | 38 | | 27 |
+| Found by both captures | 6 | about 15 | 3 |
 | Within 2 cm (the gate counts misses as failures) | 0% | 15 to 25% | 0% |
-| Matched differences inside the 95% interval | {{b5_ci}} | 80% or more | {{a5_ci}} |
+| Matched differences inside the 95% interval | 0 of 6 | 80% or more | 0 of 3 |
 
+The declaration quoted 37 openings and 1 of 6 inside the interval from an earlier run of the
+same code; regenerated from commit `a79bf15` the before numbers are 38 and 0 of 6, used here.
 Regenerate with `python scripts/fixloop.py --rounds 5` (commits `a79bf15` and `e803d09`;
 tables in `bench/fixloop/round5.md`).
 
@@ -144,9 +146,9 @@ declaration, and it dominates on these captures.
 
 **What shipped anyway, and why.** The gate number is what was declared, and it did not move.
 The code still ships because it removes a failure the old detector had within a single
-capture: of the openings the old detector reported on the three samples, {{b5_solid}} of {{b5_rep}} lie mostly
+capture: of the openings the old detector reported on the three samples, 12 of 37 lie mostly
 (over half their width) on wall that the same capture saw as solid from 0.3 to 1.9 m; with
-the new detector it is {{a5_solid}} of {{a5_rep}}. The new detector looks for gaps in solid wall, so this check
+the new detector it is 3 of 24. The new detector looks for gaps in solid wall, so this check
 partly restates its own rule and is not evidence of accuracy, but an opening drawn across
 wall the capture itself saw is wrong whatever the method. A detected door's width also no
 longer moves with clutter beside it: each jamb is measured at many heights and its spread

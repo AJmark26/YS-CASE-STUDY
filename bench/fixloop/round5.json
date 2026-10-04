@@ -1,0 +1,198 @@
+{
+ "round": 5,
+ "gate": "Opening widths",
+ "fix": "Search every wall line for gaps in solid wall, jambs per height slice",
+ "commits": [
+  "a79bf15331",
+  "e803d09280"
+ ],
+ "before": {
+  "gate": "|width diff| <= 2 cm on >= 85% of openings; missed or phantom openings count as misses",
+  "n_openings": 38,
+  "matched": 6,
+  "pass_rate": 0.0,
+  "matched_within_2cm": 0.0,
+  "median_abs_diff_cm": 13.27,
+  "within_ci95": 0.0,
+  "pairs": {
+   "1a8384c3f6~c7d28f72c6": {
+    "n_openings": 19,
+    "pass_rate": 0.0,
+    "median_abs_diff_cm": 13.84,
+    "within_ci95": 0.0,
+    "matched": [
+     [
+      "D2",
+      "D6",
+      1.1512,
+      0.7867,
+      -36.45
+     ],
+     [
+      "D3",
+      "D9",
+      1.1474,
+      0.852,
+      -29.54
+     ],
+     [
+      "D5",
+      "D15",
+      0.8881,
+      0.8346,
+      -5.35
+     ],
+     [
+      "O11",
+      "O12",
+      1.4558,
+      1.5942,
+      13.84
+     ],
+     [
+      "D12",
+      "D13",
+      1.0206,
+      0.9635,
+      -5.71
+     ]
+    ]
+   },
+   "1a8384c3f6~c00a170fe1": {
+    "n_openings": 10,
+    "pass_rate": 0.0,
+    "median_abs_diff_cm": 12.69,
+    "within_ci95": 0.0,
+    "matched": [
+     [
+      "D9",
+      "D3",
+      0.8006,
+      0.9275,
+      12.69
+     ]
+    ]
+   },
+   "c7d28f72c6~c00a170fe1": {
+    "n_openings": 9,
+    "pass_rate": 0.0,
+    "median_abs_diff_cm": null,
+    "within_ci95": null,
+    "matched": []
+   }
+  },
+  "self_check": {
+   "1a8384c3f6": {
+    "reported": 14,
+    "on_solid_wall": 5,
+    "ids": [
+     "D2",
+     "D5",
+     "D8",
+     "O11",
+     "D14"
+    ]
+   },
+   "c7d28f72c6": {
+    "reported": 18,
+    "on_solid_wall": 6,
+    "ids": [
+     "W2",
+     "D3",
+     "W4",
+     "D5",
+     "D6",
+     "W16"
+    ]
+   },
+   "c00a170fe1": {
+    "reported": 5,
+    "on_solid_wall": 1,
+    "ids": [
+     "D5"
+    ]
+   }
+  },
+  "on_solid_wall": 12,
+  "reported": 37
+ },
+ "after": {
+  "gate": "|width diff| <= 2 cm on >= 85% of openings; missed or phantom openings count as misses",
+  "n_openings": 27,
+  "matched": 3,
+  "pass_rate": 0.0,
+  "matched_within_2cm": 0.0,
+  "median_abs_diff_cm": 101.5,
+  "within_ci95": 0.0,
+  "pairs": {
+   "1a8384c3f6~c7d28f72c6": {
+    "n_openings": 15,
+    "pass_rate": 0.0,
+    "median_abs_diff_cm": 121.08,
+    "within_ci95": 0.0,
+    "matched": [
+     [
+      "D4",
+      "O10",
+      0.6906,
+      1.7056,
+      101.5
+     ],
+     [
+      "D9",
+      "O9",
+      0.6609,
+      2.0674,
+      140.65
+     ]
+    ]
+   },
+   "1a8384c3f6~c00a170fe1": {
+    "n_openings": 5,
+    "pass_rate": 0.0,
+    "median_abs_diff_cm": 19.92,
+    "within_ci95": 0.0,
+    "matched": [
+     [
+      "D5",
+      "D3",
+      0.6052,
+      0.8044,
+      19.92
+     ]
+    ]
+   },
+   "c7d28f72c6~c00a170fe1": {
+    "n_openings": 7,
+    "pass_rate": 0.0,
+    "median_abs_diff_cm": null,
+    "within_ci95": null,
+    "matched": []
+   }
+  },
+  "self_check": {
+   "1a8384c3f6": {
+    "reported": 9,
+    "on_solid_wall": 2,
+    "ids": [
+     "D8",
+     "D9"
+    ]
+   },
+   "c7d28f72c6": {
+    "reported": 12,
+    "on_solid_wall": 1,
+    "ids": [
+     "O9"
+    ]
+   },
+   "c00a170fe1": {
+    "reported": 3,
+    "on_solid_wall": 0,
+    "ids": []
+   }
+  },
+  "on_solid_wall": 3,
+  "reported": 24
+ }
+}
