@@ -69,7 +69,7 @@ def compare(test_dir, ref_dir):
                           "inside_ci95": bool(abs(diff) <= 196 * np.hypot(w["sigma"], m["sigma"]))})
     d = np.abs([w["diff_cm"] for w in walls])
     return {"test": str(test_dir), "reference": str(ref_dir), "registration_fit": round(fit, 3),
-            "runtime_s": round(sum(test.get("timing_s", {}).values()), 1),
+            "runtime_s": test.get("timing_s", {}).get("wall_clock_s", test.get("timing_s", {}).get("total_s")),
             "duration_s": test["capture"].get("duration_s"), "notes": test["capture"].get("notes", []),
             "rooms": rooms, "walls": walls,
             "summary": {"rooms_found": len(test["rooms"]), "rooms_matched": sum(x["iou"] >= 0.5 for x in rooms),

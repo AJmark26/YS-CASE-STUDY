@@ -54,6 +54,8 @@ def main(argv=None):
     ap.add_argument("--video-depth", choices=["mapanything", "mono"], default="mapanything",
                     help="video tier depth source (mono = the earlier monocular baseline, for ablation)")
     a = ap.parse_args(argv)
+    import time
+    t_start = time.time()
     tier = a.tier or detect_tier(a.capture)
     tag = "_mono" if tier == "video" and a.video_depth == "mono" else ""
     out = a.out or Path("out") / f"{a.capture.stem}_{tier}{tag}{'_nodrift' if a.no_drift else ''}"
@@ -79,6 +81,7 @@ def main(argv=None):
         result["video"] = vc.stats
     else:
         raise SystemExit(f"tier {tier} not implemented yet")
+    result.setdefault("timing_s", {})["wall_clock_s"] = round(time.time() - t_start, 1)   # load to plan, damage included
     (out / "plan.json").write_text(json.dumps(result, indent=1))
     import numpy as np
     np.savez_compressed(out / "wall_points_plan.npz", xy=cloud.astype(np.float32))
