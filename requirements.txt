@@ -1,0 +1,6 @@
+numpy>=1.26
+scipy>=1.11
+opencv-python-headless>=4.9
+open3d>=0.18
+shapely>=2.0
+matplotlib>=3.8
