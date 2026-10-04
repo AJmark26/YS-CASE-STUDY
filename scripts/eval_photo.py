@@ -20,9 +20,35 @@ from pathlib import Path
 import numpy as np
 from shapely.geometry import Polygon
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import benchmark as bm  # noqa: E402
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "scripts"))
 import register_plans as rp  # noqa: E402
+from ysplan import measure  # noqa: E402
+
+
+def load(out):
+    out = Path(out)
+    return json.loads((out / "plan.json").read_text()), np.load(out / "wall_points_plan.npz")["xy"]
+
+
+def compare_walls(poly, xy_a, xy_b, min_obs=0.3, min_len=0.5):
+    """Both runs' 2D wall points measured on one polygon (the comparison benchmark.py made
+    before it moved to 3D clouds)."""
+    U = lambda xy: np.stack([xy[:, 0], np.full(len(xy), 1.0), xy[:, 1]], 1)  # inside the wall band
+    wa, wb = measure.walls(U(xy_a), poly), measure.walls(U(xy_b), poly)
+    rows = []
+    for a, b in zip(wa, wb):
+        La, Lb = a["length_m"]["value"], b["length_m"]["value"]
+        if La < min_len or a["observed_fraction"] < min_obs or b["observed_fraction"] < min_obs:
+            continue
+        if not (a["ends_observed"] and b["ends_observed"]):   # length set by an unseen wall
+            continue
+        rows.append({"length_ref": La, "length_test": Lb, "diff_cm": round((Lb - La) * 100, 2),
+                     "diff_pct": round((Lb - La) / La * 100, 2),
+                     "sigma_ref_cm": round(a["length_m"]["sigma"] * 100, 2),
+                     "sigma_test_cm": round(b["length_m"]["sigma"] * 100, 2)})
+    return rows
 
 
 def main():
@@ -31,8 +57,8 @@ def main():
     ap.add_argument("lidar")
     ap.add_argument("--swap", action="append", default=[])
     a = ap.parse_args()
-    ph, P_xy = bm.load(a.photo)
-    li, L_xy = bm.load(a.lidar)
+    ph, P_xy = load(a.photo)
+    li, L_xy = load(a.lidar)
     ren = {}
     for s in a.swap:
         x, y = s.split(":")
@@ -56,7 +82,7 @@ def main():
         fit = None
         if len(sub) > 100 and len(Lsub) > 100:
             T, fit = rp.register(Lsub, sub, step=0.25)
-            walls = bm.compare(gpoly, Lsub, rp.apply(T, sub), min_obs=0.2)
+            walls = compare_walls(gpoly, Lsub, rp.apply(T, sub), min_obs=0.2)
         rows.append({"room": r["id"], "lidar_room": lid, "registration_fit": round(fit, 3) if fit else None,
                      "walls": [{k: w[k] for k in ("length_ref", "length_test", "diff_pct")} for w in walls],
                      "area": A["value"], "area_ref": Ag, "area_err_pct": round(100 * (A["value"] / Ag - 1), 1),
