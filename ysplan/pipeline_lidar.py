@@ -1,0 +1,97 @@
+"""LiDAR tier: Stray Scanner capture -> stitched, dimensioned plan."""
+import time
+
+import numpy as np
+
+from . import drift as drift_mod
+from . import fuse, grid, io_stray, layout, measure, openings, rooms
+
+
+def run(capture_dir, drift=True, step=4, log=print):
+    t0 = time.time()
+    timing = {}
+    cap = io_stray.load(capture_dir)
+    duration = float(cap.timestamps[-1] - cap.timestamps[0])
+    log(f"[lidar] {len(cap)} frames, {duration:.0f} s")
+    if drift:
+        poses, valid, drift_rep = drift_mod.correct(cap, log=log)
+    else:
+        poses, valid = cap.T_wc, np.ones(len(cap), bool)
+        drift_rep = {"enabled": False}
+    drift_rep["enabled"] = bool(drift)
+    timing["drift_s"] = time.time() - t0
+    frames = np.where(valid)[0]
+    P, _ = fuse.fuse(cap, poses=poses, frame_ids=frames[::step])
+    U, floor_y, yaw = grid.align(P)
+    G = grid.build(U, floor_y, yaw, wall_span=0.4)
+    timing["fuse_s"] = time.time() - t0 - timing["drift_s"]
+    carve_ids = frames[::5]
+    c_low = rooms.carve(G, cap, poses, carve_ids)
+    c_mid = rooms.carve(G, cap, poses, carve_ids, end_h=(0.9, 1.9))
+    t = poses[frames, :3, 3]
+    c, s = np.cos(yaw), np.sin(yaw)
+    traj = np.stack([t[:, 0] * c + t[:, 2] * s, -t[:, 0] * s + t[:, 2] * c], 1)
+    free, _ = rooms.free_space(G, G.to_cell(traj), c_low)
+    labels = rooms.segment(free)
+    polys, _, _ = layout.room_polygons(U, G, labels)
+    log(f"[lidar] {len(polys)} rooms")
+    sigma_drift = drift_rep.get("loop_misalignment_cm_after", 0.0) / 100.0 if drift else 0.0
+    out_rooms, per_room_open = [], {}
+    for k, poly in polys.items():
+        rid = f"R{k}"
+        wl = measure.walls(U, poly, sigma_drift=sigma_drift)
+        lp = poly.representative_point()
+        out_rooms.append({
+            "id": rid,
+            "polygon": [[round(x, 4), round(y, 4)] for x, y in list(poly.exterior.coords)[:-1]],
+            "label_point": [lp.x, lp.y],
+            "walls": [dict(w, id=f"{rid}-W{i + 1}") for i, w in enumerate(wl)],
+            "floor_area_m2": measure.area(poly, wl),
+            "ceiling_height_m": measure.ceiling(U, poly),
+            "bbox_m": [round(poly.bounds[2] - poly.bounds[0], 3), round(poly.bounds[3] - poly.bounds[1], 3)],
+            "wall_observed_fraction": round(float(np.mean([w["observed_fraction"] for w in wl])), 3),
+        })
+        per_room_open[rid] = openings.detect(U, G, poly, c_low, c_mid)
+    ops = openings.merge(per_room_open)
+    for i, o in enumerate(ops, 1):
+        o["id"] = f"{o['type'][0].upper()}{i}"
+        s_open = np.hypot(0.006, np.std(o["widths_seen"]) if len(o["widths_seen"]) > 1 else 0.0)
+        o["width_m"] = measure._val(o["width_m"], s_open if o["jambs_found"] == 2 else 0.05)
+        o.pop("widths_seen", None)
+    adjacency = _adjacency(polys, ops)
+    timing["layout_s"] = time.time() - t0 - timing["drift_s"] - timing["fuse_s"]
+    timing["total_s"] = time.time() - t0
+    result = {
+        "schema_version": "1.0",
+        "tier": "lidar",
+        "units": "m",
+        "frame": "gravity-aligned plan; x,y = Manhattan-aligned floor coordinates, origin arbitrary",
+        "capture": {"path": str(capture_dir), "frames": int(len(cap)), "frames_used": int(valid.sum()),
+                    "duration_s": round(duration, 2)},
+        "rooms": out_rooms,
+        "openings": ops,
+        "adjacency": adjacency,
+        "footprint_m2": measure._val(sum(r["floor_area_m2"]["value"] for r in out_rooms),
+                                     float(np.sqrt(sum(r["floor_area_m2"]["sigma"] ** 2 for r in out_rooms)))),
+        "drift": drift_rep,
+        "timing_s": {k: round(v, 1) for k, v in timing.items()},
+    }
+    m = (U[:, 1] > 0.3) & (U[:, 1] < 1.9)
+    cloud = U[m][:, [0, 2]][::7]
+    return result, cloud
+
+
+def _adjacency(polys, ops, touch=0.35):
+    """Rooms are adjacent if their footprints come within a wall thickness of each other;
+    'via' lists the openings that connect them."""
+    adj = []
+    ids = sorted(polys)
+    for a_i, a in enumerate(ids):
+        for b in ids[a_i + 1:]:
+            if polys[a].distance(polys[b]) > touch:
+                continue
+            ra, rb = f"R{a}", f"R{b}"
+            via = [o["id"] for o in ops if set(o["rooms"]) == {ra, rb}]
+            shared = polys[a].buffer(touch / 2).intersection(polys[b].buffer(touch / 2))
+            adj.append({"rooms": [ra, rb], "via": via, "shared_boundary_m": round(shared.length / 2, 2)})
+    return adj

@@ -28,10 +28,10 @@ def fuse(cap, step=3, voxel=0.02, max_depth=4.0, min_conf=2, min_hits=3, poses=N
         k = np.floor(P / voxel).astype(np.int64)
         keys.append(k); sums.append(P)
     K = np.concatenate(keys); P = np.concatenate(sums)
-    uk, inv, n = np.unique(K, axis=0, return_inverse=True, return_counts=True)
-    inv = inv.ravel()
-    acc = np.zeros((len(uk), 3))
-    np.add.at(acc, inv, P)
-    pts = acc / n[:, None]
+    K -= K.min(0)
+    span = K.max(0) + 1
+    flat = (K[:, 0] * span[1] + K[:, 1]) * span[2] + K[:, 2]   # 1D key: much faster unique
+    uk, inv, n = np.unique(flat, return_inverse=True, return_counts=True)
+    pts = np.stack([np.bincount(inv, weights=P[:, a], minlength=len(uk)) for a in range(3)], 1) / n[:, None]
     keep = n >= min_hits
     return pts[keep], n[keep]
