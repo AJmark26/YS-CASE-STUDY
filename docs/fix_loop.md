@@ -202,3 +202,46 @@ rejected on evidence.
   walks: where a room ends in an open plan is a judgement both captures make from different
   views, and which one is right cannot be told without the rooms. Not shipped.
 
+
+## Round 7: doors cut off at the end of the searched wall (declared before the fix)
+
+- **Gate and number.** Opening widths within 2 cm, misses counted, as in round 5:
+  0 of 27 openings over the three capture pairs (`bench/benchmark.json`). 3 are found by
+  both captures, and those 3 are different objects (one capture reports a single wide
+  opening where the other finds a door), so none is inside its 95% interval.
+- **Root cause, with evidence.** Round 5's post-mortem could not tell which check dropped the
+  doors one capture finds and the other misses. This round reran the detector on all three
+  captures with every candidate gap logged with the check that rejected it, and looked each
+  of the 24 unmatched openings up in the other capture (scratch scripts, not in the repo):
+
+  | What the other capture's detector did there | Openings |
+  |---|---|
+  | Saw the gap, but it ran off the end of the stretch of wall line being searched, so one jamb was never seen and the both-jambs check dropped it | 9 |
+  | Searched no wall line there | 9 |
+  | Found it as part of a wider opening (two doors and the wall between them read as one) | 3 |
+  | Saw the gap, but no floor beyond it (the depth check) | 2 |
+  | Saw the gap with one jamb only partly seen | 1 |
+
+  The stretch searched is a room outline edge plus 1 m at each end. Where a capture's room
+  outline stops at the door (the room was split there), the door runs past the end of the
+  stretch.
+- **Fix.** Search each stretch further along its wall line, far enough to reach the far jamb
+  of the widest opening the detector accepts (2.6 m x 1.1), but keep only gaps that overlap
+  the stretch itself, so the new reach adds no gaps out in the next room. Collinear stretches
+  whose reaches overlap are searched as one, so a gap is not found twice. Each jamb's
+  interval also gets the capture's residual drift, split over the two jambs as for a wall
+  face (`measure.walls`): a jamb is the end of a wall face.
+- **Prediction.** Before this declaration the change was screened on the detector inputs
+  saved from the same three captures (with a 2 m reach and no interval change), so the
+  numbers below are not an independent test; the measured ones come from rerunning the
+  pipeline at both commits. Found by both captures: from 3 to about 12. Openings in the area
+  both captures cover: from 27 to about 57, because the new doors are also found by one
+  capture only. Within 2 cm: about 2, so the pass rate goes from 0% to about 3 to 4%. The
+  gate (85%) stays far off: on the doors both captures find, each jamb sits 2 to 3 cm apart
+  between the captures, about what a wall face does (the wall gate's median difference is
+  1.9 cm), so the widths differ by about 5 cm (median). With the drift term about half of
+  the matched differences should fall inside their 95% interval (now 0 of 3). Openings
+  reported on the three captures: from 24 to about 50; a few of the new ones look like gaps
+  between furniture rather than doors when plotted on the capture's own points, so the
+  count of openings lying on wall the capture saw as solid (3 now) should stay about the same,
+  but the phantom count will rise.
