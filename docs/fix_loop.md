@@ -15,6 +15,7 @@ are compared; both are given below. Round 3 regenerates the same result it shipp
 | 1 | `1c3350e` | `c0c8046` |
 | 3 | `5eed22a` | `7b57f35` |
 | 5 | `a79bf15` (declaration) | `e803d09` |
+| 7 | `0113cce` (declaration) | `1b05d6b` |
 
 | Round | Gate | Before | After | Outcome |
 |---|---|---|---|---|
@@ -24,10 +25,11 @@ are compared; both are given below. Round 3 regenerates the same result it shipp
 | 4 | Calibration of wall intervals | 86.7% inside 95% CI | 90% to 100%, but 2 to 10 times wider intervals | rejected |
 | 5 | Opening widths (2 cm on 85%) | 0 of 38 openings | 0 of 27 openings | shipped, prediction badly wrong |
 | 6 | Walk-in room areas | t3 15.9 against 11.1 m² | no room cut | rejected: the captures' rays contradict it |
+| 7 | Opening widths | 0 of 27 openings | 2 of 56 (3.6%); 12 found by both, 7 of 12 inside the interval | shipped, far short of the gate |
 
 Rounds 1 to 3 were run before this file existed, and no numeric prediction was written down
-for them before the fix shipped. Round 5 is the first one declared in advance: its prediction
-was committed before any of its code.
+for them before the fix shipped. Rounds 5 and 7 were declared in advance: each prediction was
+committed before any of its code.
 
 ## Round 1: rooms turned against the plan axes (shipped)
 
@@ -245,3 +247,56 @@ rejected on evidence.
   between furniture rather than doors when plotted on the capture's own points, so the
   count of openings lying on wall the capture saw as solid (3 now) should stay about the same,
   but the phantom count will rise.
+
+### Round 7 result (shipped, short of the gate)
+
+| Measure (3 capture pairs) | Before | Predicted | After |
+|---|---|---|---|
+| Openings either capture reports in the area both cover | 27 | about 57 | 56 |
+| Found by both captures | 3 | about 12 | 12 |
+| Within 2 cm (the gate counts misses as failures) | 0% | about 3 to 4% | 3.6% (2 of 56) |
+| Matched differences inside the 95% interval | 0 of 3 | about half | 7 of 12 |
+| Openings reported on the three captures | 24 | about 50 | 50 |
+| Of those, lying mostly on wall the same capture saw as solid | 3 | about 3 | 3 |
+
+Regenerate with `python scripts/fixloop.py --rounds 7` (commits `0113cce` and `1b05d6b`;
+tables in `bench/fixloop/round7.md`).
+
+**Post-mortem.** Every number landed on its prediction, which says little about the method of
+predicting: the prediction came from a screen of the same change on the same captures, and
+rerunning the pipeline at both commits reproduced that screen exactly. What the numbers do show:
+
+- *Detection.* 7 of the 12 matches are the same door in both captures; their widths differ by
+  0.5 to 8.6 cm (median 4.9 cm), 2 of them within 2 cm, and 6 of the 7 fall inside their
+  interval. The other 5 differ by 20 cm to 1.4 m, so they are not the same object; in two of
+  them, plotted on the points, one capture reads two doors and the wall between them as one
+  opening.
+- *Phantoms.* The fix doubles the openings reported (24 to 50), and 44 of the 56 in the shared
+  area are still found by one capture only. On the floor-only capture, 5 of its 12 new
+  openings are the same door in the ceiling capture. Plotted on the capture's own points, 2
+  look wrong: one runs about 25 cm inside the room's wall, and one covers the two 0.69 m
+  doors 3 cm apart that the old detector found on that wall, now reported as one 1.07 m door
+  with a ±38 cm interval because the wall's two faces disagree. The other 5 cannot be told
+  from the points. The gate counts all of these as failures, and it still rose. Openings
+  lying across wall the capture itself saw as solid stay at 3, and the share of openings in
+  the shared area that the other capture finds as the same opening rises from 0 of 30 to 14
+  of 68, so the old detector's openings were no better confirmed than the new ones. The
+  plans look busier: on the ceiling capture (Figure 1 of the technical report) several new
+  openings run through a room, where its outline merges two spaces across a partition; one
+  of them is the 2 m opening both captures place within 1 cm, the others cannot be told.
+- *Why the gate stays far off.* On the doors both captures find, each jamb sits 2 to 3 cm
+  apart between the captures. Before declaring, five ways of placing the jamb edge were tried
+  on those doors (the nearest point per height slice, as shipped; the second nearest; the
+  densest 1 cm bin, which is the jamb's own face; where point density falls to half; slices
+  above 1.1 m only): the median width difference was 3.8 to 5.2 cm for all five, so the edge
+  rule is not the limit. Cross-sections of four of the doors show why: the jambs move between
+  captures by about as much as wall faces do (the wall gate's median is 1.9 cm, from plane
+  fits over whole walls), and some "jambs" are an open door leaf or the corner of a
+  perpendicular wall. Agreement within 2 cm between two captures needs each capture's width
+  right to about 1.4 cm, which this data does not support.
+
+**Next step if this round were repeated.** Split an opening where wall is seen inside it at
+upper heights (the merged double doors), and search the wall lines neither room split puts
+an outline on (9 of the 24 misses before this round). A tape-measured set of door widths would
+let the gate be scored against truth instead of against a second capture, which doubles the
+error.

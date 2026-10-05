@@ -1,10 +1,10 @@
 # Benchmark report
 
 All numbers come from `bench/` and regenerate with the commands under "Reproduce every
-number" in the README. Code: commit `c2ef7cd` on `main`. The LiDAR plans it scores were made by
-`d340327`; rerun with `c2ef7cd`, the bedroom cut's plan differs by at most 1e-14, and the LiDAR
-rows of `bench/benchmark.json` are unchanged. The video rows come from `c2ef7cd`, the photo rows
-from `f6d0eab` (room stitching, rooms measured without their doorway stills).
+number" in the README. The LiDAR plans and the LiDAR rows of `bench/benchmark.json` come from
+`1b05d6b` (fix-loop round 7), which changes only the openings: rooms, walls, ceilings and damage
+match the plans `d340327` made to within 1e-11 m. The video rows come from `c2ef7cd`, the photo
+rows from `f6d0eab` (room stitching, rooms measured without their doorway stills).
 
 ## What could be measured
 
@@ -37,7 +37,7 @@ A bias that both measurements share is invisible to all of these.
 | Gate (brief) | Measured as | Result | Status |
 |---|---|---|---|
 | Repeatability: same wall within 1 cm or 0.5% | 29 walls over 3 capture pairs | 37.9% pass; median difference 1.88 cm (1.1%) | fail |
-| Opening widths within 2 cm on 85%, misses count | 27 openings over 3 capture pairs | 0% (3 found by both captures, none within 2 cm) | fail |
+| Opening widths within 2 cm on 85%, misses count | 56 openings over 3 capture pairs | 3.6% (12 found by both captures, 2 within 2 cm) | fail |
 | Ceiling height: spread within 1 cm per room | 6 rooms, two halves of the ceiling capture | 5 of 6 rooms; median 0.57 cm, largest 1.68 cm | fail (one room) |
 | Ceiling height within 1.5 cm of truth | | not measurable without ground truth | not measured |
 | Drift accountability | ablation on the whole-apartment capture | loop misalignment 16.4 cm to 2.3 cm; footprint and rooms below | met |
@@ -101,18 +101,20 @@ number.
 the part of the home both captures cover; each is matched to the other capture's nearest
 opening on a parallel wall within 35 cm. Misses count as failures.
 
-| Capture pair | Openings | Found by both | Within 2 cm |
-|---|---|---|---|
-| floor_only ~ with_ceiling | 15 | 2 | 0 |
-| floor_only ~ single_room | 5 | 1 | 0 |
-| with_ceiling ~ single_room | 7 | 0 | 0 |
+| Capture pair | Openings | Found by both | Within 2 cm | Inside the 95% interval |
+|---|---|---|---|---|
+| floor_only ~ with_ceiling | 31 | 9 | 1 | 5 of 9 |
+| floor_only ~ single_room | 10 | 2 | 1 | 1 of 2 |
+| with_ceiling ~ single_room | 15 | 1 | 0 | 1 of 1 |
 
-The three matches pair different objects (widths 20 cm to 1.4 m apart). Fix-loop round 5
-(`docs/fix_loop.md`) has the analysis: of 24 openings found by one capture only, 10 are seen as
-gaps by the other capture but rejected by its jamb or depth checks (the diagnostic does not
-record which),
-8 lie on wall lines the other capture does not search, 4 are solid wall in the other capture
-(a closed door or a phantom) and 2 were never crossed by its rays.
+7 of the 12 matches are the same door in both captures: widths 0.5 to 8.6 cm apart (median
+4.9 cm), 2 within 2 cm, 6 inside the 95% interval. The other 5 differ by 20 cm to 1.4 m, so
+they are not the same object; in two of them one capture reads two doors and the wall between
+them as one opening. 44 of the 56 openings are found by one capture only. Fix-loop rounds 5 and
+7 (`docs/fix_loop.md`) have the analysis: before round 7, 9 of the 24 openings found by one
+capture only ran off the end of the stretch of wall the other capture searched, and 9 lay on
+wall lines it did not search. Round 7 follows the first kind to their far jamb, which took the
+matches from 3 to 12 and doubled the openings reported (24 to 50), phantoms included.
 
 ## Drift ablation
 
@@ -123,12 +125,12 @@ Whole-apartment capture `1a8384c3f6`, with and without drift correction (`--no-d
 | Mean disagreement at the 8 accepted loop closures | 2.3 cm (16.4 cm before correction) | not corrected |
 | Footprint | 51.1 ± 1.1 m² | 47.0 ± 0.5 m² |
 | Rooms | 6 | 5 |
-| Openings | 9 | 14 |
-| Geometry time | 78.5 s | 58.5 s |
+| Openings | 20 | 25 |
+| Geometry time | 53.7 s | 46.5 s |
 
 Without correction the bedroom and the small room beside it merge into one (12.6 m² against
-8.4 + 2.7 m² with correction), the hall shrinks from 16.8 to 13.4 m², and 14 openings are
-reported instead of 9 (`plan.png` of both runs). The capture also has an ARKit relocalisation
+8.4 + 2.7 m² with correction), the hall shrinks from 16.8 to 13.4 m², and 25 openings are
+reported instead of 20 (`plan.png` of both runs). The capture also has an ARKit relocalisation
 jump at frame 5,199 of 5,251; with correction on, the 52 frames after it are dropped.
 
 **Sensitivity to where the chunks are cut.** Drift correction cuts the walk into 180-frame

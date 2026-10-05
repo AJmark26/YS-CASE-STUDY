@@ -27,7 +27,7 @@ both measurements share is invisible to it. `docs/benchmark_report.md` has every
 | Outlines | Rectilinear polygon over a cell complex of detected wall lines | Every edge lies on a measured wall line |
 | Walls | Each room squared on its own; each face = median of its points within 5 cm | Fix loop round 1 |
 | Ceilings | Robust ceiling level minus this room's own floor level | Fix loop round 3 |
-| Openings | Gaps in solid wall along every wall line, proven open by rays; jambs per height slice | Fix loop round 5 |
+| Openings | Gaps in solid wall along every wall line, proven open by rays, followed past the end of a room outline to the far jamb; jambs per height slice | Fix loop rounds 5 and 7 |
 | Damage | Surfaces unwrapped at 1 cm per pixel; pluggable detector; masks to m²; rules CD1 to CD5; scope keyed to surface ids | Metric extent comes from the geometry, not from the detector |
 
 The video tier makes a depth map for every 40th frame (MapAnything, given the ARKit poses
@@ -38,6 +38,7 @@ geometry stages. The photo tier is described in section 3.
 ceiling capture (215 s walk, one command, no settings): six rooms placed in one frame with wall
 lengths, floor areas, ceiling heights, doors (red) and wide openings (purple), each with its 95%
 interval (±). Solid walls were measured; dashed ones are inferred where the wall was not seen.
+Some openings drawn inside a room are gaps in a partition the outline merges; others are phantoms (section 8).
 Grey: fused wall points. Grid: 2 m.</figcaption></figure>
 
 ## 3. Tiers and device matrix
@@ -112,7 +113,7 @@ Each measurement carries a 1-sigma built from these terms (`ysplan/measure.py`,
 | Wall length | two faces in quadrature; a face never seen counts 10 cm | 2.5 cm (90% below 2.9 cm) for 116 of 156 walls; 40 walls have an unseen end |
 | Floor area | perimeter times mean face sigma | 5% of the area |
 | Ceiling height | ceiling level, floor level, 0.5 cm sensor, ceiling relief across the room | 1.1 cm; relief (0.5 to 1.6 cm) is the largest term |
-| Opening width | per jamb: spread over height slices / sqrt(slices), with 0.5 cm; both jambs; spread of the two faces of a partition | 1.0 cm |
+| Opening width | per jamb: spread over height slices / sqrt(slices), with 0.5 cm and residual loop disagreement / sqrt 2, as for a wall face; both jambs; spread of the two faces of a partition | 2.4 cm (1.3 cm on the bedroom capture, whose drift is smallest) |
 | Video and photo tiers | same terms on predicted depth; video walls and openings times 5 (section 6); photo area adds twice the 5% scale spread | video wall 5.4 cm; photo area 10 to 20% of the area |
 
 ## 6. Calibration
@@ -124,7 +125,7 @@ the difference of two measurements falls inside their combined interval.
 |---|---|
 | Same wall, two captures (29 walls) | 100% (82.8% without the drift term) |
 | Same ceiling, two halves of a capture (6 rooms) | 6 of 6 |
-| Same opening, two captures (3 matches, all different objects) | 0 of 3 |
+| Same opening, two captures (12 matches, 7 of them the same door) | 7 of 12 (6 of the 7 same doors) |
 | Walk-in rehearsal walls against the full capture (10 walls) | 6 of 10 |
 | Video walls against LiDAR (19 walls) | 18 of 19 with the tier factor of 5, fitted on these walls (13 of 19 without) |
 | Photo room areas against LiDAR (8 rooms) | 2 of 8: unseen floor is not in the interval |
@@ -141,7 +142,7 @@ those errors.
 | Gate | Measured as | Result | Status |
 |---|---|---|---|
 | Repeatability, 1 cm or 0.5% per wall | 29 walls, 3 capture pairs | 37.9%; median 1.88 cm | fail |
-| Opening widths, 2 cm on 85%, misses count | 27 openings, 3 capture pairs | 0% | fail |
+| Opening widths, 2 cm on 85%, misses count | 56 openings, 3 capture pairs | 3.6% (2 of 56) | fail |
 | Ceiling spread 1 cm | 6 rooms, two halves | 5 of 6; median 0.57 cm | fail (1 room) |
 | Ceiling within 1.5 cm of truth | | needs ground truth | not measured |
 | Drift accountability | ablation | section 4 | met |
@@ -166,16 +167,19 @@ when it shipped are in brackets.
 | 3 | Ceiling spread | one floor for the whole home; densest bin flips on a two-level ceiling | 4 of 6 rooms; largest 4.0 cm | 5 of 6; largest 1.7 cm | shipped, one room short |
 | 4 | Wall calibration | a second surface near the face | 86.7% inside | 90 to 100%, 2 to 10x wider | rejected |
 | 5 | Opening widths (declared in advance) | detection follows the room split; jambs moved by clutter | 0 of 38 | 0 of 27 | shipped; prediction badly wrong |
+| 7 | Opening widths (declared in advance) | a door where a room outline stops runs off the searched wall, so one jamb is never seen | 0 of 27 | 2 of 56 (3.6%) | shipped, far short |
 
-Round 5 was the worst gate and the only one with a prediction written before the code. The
-prediction (about 15 openings found by both captures, 15 to 25% within 2 cm) was badly wrong:
-3 were found by both, and they were different objects. Looking up each of the 24 openings that
-one capture found and the other missed: 10 were seen by the other capture as gaps but dropped
-by its jamb or depth checks (most likely the new jamb rule, which keeps clutter out but needs
-wall seen at most heights beside the door; the diagnostic does not separate the two), 8 lie on wall lines the other capture
-does not search (the room-split hypothesis, still true), 4 are solid wall there (a closed door
-or a phantom) and 2 were not crossed by rays. What the round did fix: openings drawn across wall
-that the same capture saw as solid fell from 12 of 37 to 3 of 24.
+Rounds 5 and 7 were declared before their code. Round 5's prediction (about 15 openings found
+by both captures, 15 to 25% within 2 cm) was badly wrong: 3 were found by both, and they were
+different objects; it did stop openings being drawn across wall the same capture saw as solid
+(12 of 37 to 3 of 24). Round 7 logged why the other capture dropped each of the 24 openings
+found by one capture only: 9 ran off the end of the wall stretch it searched, where its room
+outline stops at the door, and 9 lie on wall lines it does not search. Following those doors
+to their far jamb took the openings found by both from 3 to 12, as predicted from a screen on
+the same captures. 7 of the 12 are the same door, 0.5 to 8.6 cm apart in width (median 4.9):
+each jamb moves 2 to 3 cm between captures, as wall faces do, and five ways of placing the jamb
+edge all gave medians of 3.8 to 5.2 cm, so 2 cm between two captures is out of reach with this
+data. The cost is phantoms: reported openings doubled (24 to 50), some of them across a room.
 
 ## 9. Walk-in rehearsal and known failure modes
 
@@ -196,8 +200,9 @@ Known failure modes, worst first:
    The protocol asks for every wall and each doorway's full height to be scanned.
 2. **Outline jogs.** A wall's end can sit on furniture in one capture and on the wall in another:
    about 12 cm, with an interval that does not cover it.
-3. **Openings.** Which doors are found differs between captures (section 8). A found door's
-   width carries a 1 cm interval from its jambs, which no cross-capture match has yet confirmed.
+3. **Openings.** Which doors are found differs between captures, and some reported openings
+   are phantoms (section 8). The same door's width differs by about 5 cm between captures; its
+   2.4 cm interval covers 6 of the 7 same-door matches.
 4. **Floor or ceiling not seen.** Reported as not observed, with a lower bound for the ceiling;
    never guessed. Without the floor the room split also fails: in the looking-up test two rooms
    merged and a 2.09 m wall came out 3.44 m. Such a plan now says its outlines are unreliable.

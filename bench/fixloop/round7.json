@@ -1,0 +1,231 @@
+{
+ "round": 7,
+ "gate": "Opening widths",
+ "fix": "Follow a door past the end of its wall stretch to its far jamb; jamb intervals include residual drift",
+ "commits": [
+  "0113cce40c",
+  "1b05d6b2b1"
+ ],
+ "before": {
+  "gate": "|width diff| <= 2 cm on >= 85% of openings; missed or phantom openings count as misses",
+  "n_openings": 27,
+  "matched": 3,
+  "pass_rate": 0.0,
+  "matched_within_2cm": 0.0,
+  "median_abs_diff_cm": 101.5,
+  "within_ci95": 0.0,
+  "pairs": {
+   "1a8384c3f6~c7d28f72c6": {
+    "n_openings": 15,
+    "pass_rate": 0.0,
+    "median_abs_diff_cm": 121.08,
+    "within_ci95": 0.0,
+    "matched": [
+     [
+      "D4",
+      "O10",
+      0.6906,
+      1.7056,
+      101.5
+     ],
+     [
+      "D9",
+      "O9",
+      0.6609,
+      2.0674,
+      140.65
+     ]
+    ]
+   },
+   "1a8384c3f6~c00a170fe1": {
+    "n_openings": 5,
+    "pass_rate": 0.0,
+    "median_abs_diff_cm": 19.92,
+    "within_ci95": 0.0,
+    "matched": [
+     [
+      "D5",
+      "D3",
+      0.6052,
+      0.8044,
+      19.92
+     ]
+    ]
+   },
+   "c7d28f72c6~c00a170fe1": {
+    "n_openings": 7,
+    "pass_rate": 0.0,
+    "median_abs_diff_cm": null,
+    "within_ci95": null,
+    "matched": []
+   }
+  },
+  "self_check": {
+   "1a8384c3f6": {
+    "reported": 9,
+    "on_solid_wall": 2,
+    "ids": [
+     "D8",
+     "D9"
+    ]
+   },
+   "c7d28f72c6": {
+    "reported": 12,
+    "on_solid_wall": 1,
+    "ids": [
+     "O9"
+    ]
+   },
+   "c00a170fe1": {
+    "reported": 3,
+    "on_solid_wall": 0,
+    "ids": []
+   }
+  },
+  "on_solid_wall": 3,
+  "reported": 24
+ },
+ "after": {
+  "gate": "|width diff| <= 2 cm on >= 85% of openings; missed or phantom openings count as misses",
+  "n_openings": 56,
+  "matched": 12,
+  "pass_rate": 0.036,
+  "matched_within_2cm": 0.167,
+  "median_abs_diff_cm": 8.14,
+  "within_ci95": 0.583,
+  "pairs": {
+   "1a8384c3f6~c7d28f72c6": {
+    "n_openings": 31,
+    "pass_rate": 0.032,
+    "median_abs_diff_cm": 8.61,
+    "within_ci95": 0.556,
+    "matched": [
+     [
+      "D2",
+      "D7",
+      0.8571,
+      0.9058,
+      4.87
+     ],
+     [
+      "D3",
+      "D4",
+      1.1325,
+      1.0464,
+      -8.61
+     ],
+     [
+      "D4",
+      "O19",
+      1.0652,
+      1.7056,
+      64.04
+     ],
+     [
+      "O8",
+      "O10",
+      1.9981,
+      2.0052,
+      0.71
+     ],
+     [
+      "D10",
+      "D8",
+      1.0302,
+      1.0723,
+      4.21
+     ],
+     [
+      "O13",
+      "O21",
+      2.4653,
+      2.231,
+      -23.43
+     ],
+     [
+      "D14",
+      "D1",
+      0.7921,
+      0.8689,
+      7.68
+     ],
+     [
+      "O18",
+      "O18",
+      1.5586,
+      1.8741,
+      31.55
+     ],
+     [
+      "D20",
+      "O16",
+      0.6609,
+      2.0674,
+      140.65
+     ]
+    ]
+   },
+   "1a8384c3f6~c00a170fe1": {
+    "n_openings": 10,
+    "pass_rate": 0.1,
+    "median_abs_diff_cm": 10.19,
+    "within_ci95": 0.5,
+    "matched": [
+     [
+      "D11",
+      "D5",
+      0.6052,
+      0.8044,
+      19.92
+     ],
+     [
+      "D12",
+      "D3",
+      0.6103,
+      0.6058,
+      -0.45
+     ]
+    ]
+   },
+   "c7d28f72c6~c00a170fe1": {
+    "n_openings": 15,
+    "pass_rate": 0.0,
+    "median_abs_diff_cm": 4.99,
+    "within_ci95": 1.0,
+    "matched": [
+     [
+      "D5",
+      "D3",
+      0.6557,
+      0.6058,
+      -4.99
+     ]
+    ]
+   }
+  },
+  "self_check": {
+   "1a8384c3f6": {
+    "reported": 20,
+    "on_solid_wall": 2,
+    "ids": [
+     "D19",
+     "D20"
+    ]
+   },
+   "c7d28f72c6": {
+    "reported": 25,
+    "on_solid_wall": 1,
+    "ids": [
+     "O16"
+    ]
+   },
+   "c00a170fe1": {
+    "reported": 5,
+    "on_solid_wall": 0,
+    "ids": []
+   }
+  },
+  "on_solid_wall": 3,
+  "reported": 50
+ }
+}

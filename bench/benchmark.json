@@ -463,29 +463,106 @@
  },
  "openings_repeatability_lidar": {
   "gate": "|width diff| <= 2 cm on >= 85% of openings; missed or phantom openings count as misses",
-  "n_openings": 27,
-  "matched": 3,
-  "pass_rate": 0.0,
-  "matched_within_2cm": 0.0,
-  "median_abs_diff_cm": 101.5,
-  "within_ci95": 0.0,
+  "n_openings": 56,
+  "matched": 12,
+  "pass_rate": 0.036,
+  "matched_within_2cm": 0.167,
+  "median_abs_diff_cm": 8.14,
+  "within_ci95": 0.583,
   "pairs": {
    "1a8384c3f6~c7d28f72c6": {
     "matched": [
      {
-      "id_ref": "D4",
-      "id_test": "O10",
+      "id_ref": "D2",
+      "id_test": "D7",
       "type_ref": "door",
-      "type_test": "opening",
-      "width_ref": 0.6906,
-      "width_test": 1.7056,
-      "diff_cm": 101.5,
-      "inside_ci95": false,
-      "centre_offset_cm": 30.0
+      "type_test": "door",
+      "width_ref": 0.8571,
+      "width_test": 0.9058,
+      "diff_cm": 4.87,
+      "inside_ci95": true,
+      "centre_offset_cm": 15.4
      },
      {
-      "id_ref": "D9",
-      "id_test": "O9",
+      "id_ref": "D3",
+      "id_test": "D4",
+      "type_ref": "door",
+      "type_test": "door",
+      "width_ref": 1.1325,
+      "width_test": 1.0464,
+      "diff_cm": -8.61,
+      "inside_ci95": false,
+      "centre_offset_cm": 2.5
+     },
+     {
+      "id_ref": "D4",
+      "id_test": "O19",
+      "type_ref": "door",
+      "type_test": "opening",
+      "width_ref": 1.0652,
+      "width_test": 1.7056,
+      "diff_cm": 64.04,
+      "inside_ci95": true,
+      "centre_offset_cm": 30.9
+     },
+     {
+      "id_ref": "O8",
+      "id_test": "O10",
+      "type_ref": "opening",
+      "type_test": "opening",
+      "width_ref": 1.9981,
+      "width_test": 2.0052,
+      "diff_cm": 0.71,
+      "inside_ci95": true,
+      "centre_offset_cm": 8.3
+     },
+     {
+      "id_ref": "D10",
+      "id_test": "D8",
+      "type_ref": "door",
+      "type_test": "door",
+      "width_ref": 1.0302,
+      "width_test": 1.0723,
+      "diff_cm": 4.21,
+      "inside_ci95": true,
+      "centre_offset_cm": 6.1
+     },
+     {
+      "id_ref": "O13",
+      "id_test": "O21",
+      "type_ref": "opening",
+      "type_test": "opening",
+      "width_ref": 2.4653,
+      "width_test": 2.231,
+      "diff_cm": -23.43,
+      "inside_ci95": false,
+      "centre_offset_cm": 14.3
+     },
+     {
+      "id_ref": "D14",
+      "id_test": "D1",
+      "type_ref": "door",
+      "type_test": "door",
+      "width_ref": 0.7921,
+      "width_test": 0.8689,
+      "diff_cm": 7.68,
+      "inside_ci95": true,
+      "centre_offset_cm": 6.0
+     },
+     {
+      "id_ref": "O18",
+      "id_test": "O18",
+      "type_ref": "opening",
+      "type_test": "opening",
+      "width_ref": 1.5586,
+      "width_test": 1.8741,
+      "diff_cm": 31.55,
+      "inside_ci95": false,
+      "centre_offset_cm": 30.7
+     },
+     {
+      "id_ref": "D20",
+      "id_test": "O16",
       "type_ref": "door",
       "type_test": "opening",
       "width_ref": 0.6609,
@@ -498,93 +575,147 @@
     "unmatched": [
      {
       "run": "A",
-      "id": "D2",
-      "type": "door",
-      "width_m": 0.6889
+      "id": "O6",
+      "type": "opening",
+      "width_m": 1.4666
      },
      {
       "run": "A",
-      "id": "D5",
+      "id": "D7",
+      "type": "door",
+      "width_m": 0.6906
+     },
+     {
+      "run": "A",
+      "id": "D9",
+      "type": "door",
+      "width_m": 0.652
+     },
+     {
+      "run": "A",
+      "id": "D11",
       "type": "door",
       "width_m": 0.6052
      },
      {
       "run": "A",
-      "id": "D7",
+      "id": "O15",
+      "type": "opening",
+      "width_m": 2.0696
+     },
+     {
+      "run": "A",
+      "id": "D17",
       "type": "door",
       "width_m": 0.9087
      },
      {
       "run": "A",
-      "id": "D8",
+      "id": "D19",
       "type": "door",
       "width_m": 1.2666
      },
      {
       "run": "B",
-      "id": "D1",
-      "type": "door",
-      "width_m": 0.9896
-     },
-     {
-      "run": "B",
       "id": "D2",
       "type": "door",
-      "width_m": 0.789
+      "width_m": 0.9884
      },
      {
       "run": "B",
-      "id": "D3",
-      "type": "door",
-      "width_m": 1.0464
+      "id": "O3",
+      "type": "opening",
+      "width_m": 1.9701
      },
      {
       "run": "B",
-      "id": "D4",
+      "id": "D5",
       "type": "door",
       "width_m": 0.6557
      },
      {
       "run": "B",
-      "id": "D6",
-      "type": "door",
-      "width_m": 0.9058
-     },
-     {
-      "run": "B",
-      "id": "D7",
-      "type": "door",
-      "width_m": 0.7764
-     },
-     {
-      "run": "B",
-      "id": "O8",
+      "id": "O9",
       "type": "opening",
-      "width_m": 1.845
+      "width_m": 1.5628
      },
      {
       "run": "B",
       "id": "D11",
       "type": "door",
+      "width_m": 1.1671
+     },
+     {
+      "run": "B",
+      "id": "D12",
+      "type": "door",
+      "width_m": 0.7764
+     },
+     {
+      "run": "B",
+      "id": "O13",
+      "type": "opening",
+      "width_m": 1.4342
+     },
+     {
+      "run": "B",
+      "id": "O14",
+      "type": "opening",
+      "width_m": 2.2241
+     },
+     {
+      "run": "B",
+      "id": "D15",
+      "type": "door",
+      "width_m": 1.0629
+     },
+     {
+      "run": "B",
+      "id": "O17",
+      "type": "opening",
+      "width_m": 1.208
+     },
+     {
+      "run": "B",
+      "id": "O20",
+      "type": "opening",
+      "width_m": 1.3971
+     },
+     {
+      "run": "B",
+      "id": "O22",
+      "type": "opening",
+      "width_m": 1.4782
+     },
+     {
+      "run": "B",
+      "id": "O23",
+      "type": "opening",
+      "width_m": 1.9393
+     },
+     {
+      "run": "B",
+      "id": "D24",
+      "type": "door",
       "width_m": 1.0747
      },
      {
       "run": "B",
-      "id": "O12",
+      "id": "O25",
       "type": "opening",
       "width_m": 1.6069
      }
     ],
-    "n_openings": 15,
-    "pass_rate": 0.0,
-    "median_abs_diff_cm": 121.08,
-    "within_ci95": 0.0
+    "n_openings": 31,
+    "pass_rate": 0.032,
+    "median_abs_diff_cm": 8.61,
+    "within_ci95": 0.556
    },
    "1a8384c3f6~c00a170fe1": {
     "matched": [
      {
-      "id_ref": "D5",
-      "id_test": "D3",
+      "id_ref": "D11",
+      "id_test": "D5",
       "type_ref": "door",
       "type_test": "door",
       "width_ref": 0.6052,
@@ -592,89 +723,178 @@
       "diff_cm": 19.92,
       "inside_ci95": false,
       "centre_offset_cm": 33.8
+     },
+     {
+      "id_ref": "D12",
+      "id_test": "D3",
+      "type_ref": "door",
+      "type_test": "door",
+      "width_ref": 0.6103,
+      "width_test": 0.6058,
+      "diff_cm": -0.45,
+      "inside_ci95": true,
+      "centre_offset_cm": 20.3
      }
     ],
     "unmatched": [
      {
       "run": "A",
-      "id": "D6",
+      "id": "D2",
       "type": "door",
-      "width_m": 0.6103
+      "width_m": 0.8571
      },
      {
       "run": "A",
-      "id": "D7",
+      "id": "O6",
+      "type": "opening",
+      "width_m": 1.4666
+     },
+     {
+      "run": "A",
+      "id": "D14",
+      "type": "door",
+      "width_m": 0.7921
+     },
+     {
+      "run": "A",
+      "id": "D17",
       "type": "door",
       "width_m": 0.9087
      },
      {
+      "run": "A",
+      "id": "O18",
+      "type": "opening",
+      "width_m": 1.5586
+     },
+     {
       "run": "B",
-      "id": "O1",
+      "id": "D1",
+      "type": "door",
+      "width_m": 0.8192
+     },
+     {
+      "run": "B",
+      "id": "O2",
       "type": "opening",
       "width_m": 2.3344
      },
      {
       "run": "B",
-      "id": "D2",
+      "id": "D4",
       "type": "door",
       "width_m": 0.5988
      }
     ],
-    "n_openings": 5,
-    "pass_rate": 0.0,
-    "median_abs_diff_cm": 19.92,
-    "within_ci95": 0.0
+    "n_openings": 10,
+    "pass_rate": 0.1,
+    "median_abs_diff_cm": 10.19,
+    "within_ci95": 0.5
    },
    "c7d28f72c6~c00a170fe1": {
-    "matched": [],
+    "matched": [
+     {
+      "id_ref": "D5",
+      "id_test": "D3",
+      "type_ref": "door",
+      "type_test": "door",
+      "width_ref": 0.6557,
+      "width_test": 0.6058,
+      "diff_cm": -4.99,
+      "inside_ci95": true,
+      "centre_offset_cm": 5.1
+     }
+    ],
     "unmatched": [
      {
       "run": "A",
-      "id": "D2",
+      "id": "D1",
       "type": "door",
-      "width_m": 0.789
+      "width_m": 0.8689
      },
      {
       "run": "A",
-      "id": "D4",
-      "type": "door",
-      "width_m": 0.6557
+      "id": "O3",
+      "type": "opening",
+      "width_m": 1.9701
      },
      {
       "run": "A",
-      "id": "D5",
+      "id": "D6",
       "type": "door",
       "width_m": 1.0868
      },
      {
       "run": "A",
-      "id": "D6",
+      "id": "D7",
       "type": "door",
       "width_m": 0.9058
      },
      {
       "run": "A",
-      "id": "O12",
+      "id": "O9",
+      "type": "opening",
+      "width_m": 1.5628
+     },
+     {
+      "run": "A",
+      "id": "D11",
+      "type": "door",
+      "width_m": 1.1671
+     },
+     {
+      "run": "A",
+      "id": "O13",
+      "type": "opening",
+      "width_m": 1.4342
+     },
+     {
+      "run": "A",
+      "id": "D15",
+      "type": "door",
+      "width_m": 1.0629
+     },
+     {
+      "run": "A",
+      "id": "O17",
+      "type": "opening",
+      "width_m": 1.208
+     },
+     {
+      "run": "A",
+      "id": "O18",
+      "type": "opening",
+      "width_m": 1.8741
+     },
+     {
+      "run": "A",
+      "id": "O25",
       "type": "opening",
       "width_m": 1.6069
      },
      {
       "run": "B",
-      "id": "O1",
+      "id": "D1",
+      "type": "door",
+      "width_m": 0.8192
+     },
+     {
+      "run": "B",
+      "id": "O2",
       "type": "opening",
       "width_m": 2.3344
      },
      {
       "run": "B",
-      "id": "D3",
+      "id": "D5",
       "type": "door",
       "width_m": 0.8044
      }
     ],
-    "n_openings": 7,
+    "n_openings": 15,
     "pass_rate": 0.0,
-    "median_abs_diff_cm": null,
-    "within_ci95": null
+    "median_abs_diff_cm": 4.99,
+    "within_ci95": 1.0
    }
   }
  },
@@ -951,7 +1171,7 @@
     4.2423,
     2.6864
    ],
-   "openings": 9,
+   "openings": 20,
    "drift": {
     "chunks": 29,
     "loops_accepted": 8,
@@ -961,18 +1181,18 @@
      5200
     ],
     "frames_dropped": 52,
-    "loop_misalignment_cm_before": 16.39206945168548,
-    "loop_misalignment_cm_after": 2.264519941021509,
-    "max_correction_m": 0.5086136310417795,
-    "mean_correction_m": 0.22454867171443252,
+    "loop_misalignment_cm_before": 16.392069451685458,
+    "loop_misalignment_cm_after": 2.264519941027331,
+    "max_correction_m": 0.5086136310416605,
+    "mean_correction_m": 0.22454867171422738,
     "enabled": true
    },
    "timing_s": {
-    "drift_s": 13.1,
-    "fuse_s": 26.3,
-    "layout_s": 26.5,
-    "total_s": 65.9,
-    "wall_clock_s": 351.1
+    "drift_s": 10.7,
+    "fuse_s": 22.6,
+    "layout_s": 20.4,
+    "total_s": 53.7,
+    "wall_clock_s": 333.3
    }
   },
   "1a8384c3f6_lidar_nodrift": {
@@ -986,16 +1206,16 @@
     6.5986,
     3.7555
    ],
-   "openings": 14,
+   "openings": 25,
    "drift": {
     "enabled": false
    },
    "timing_s": {
     "drift_s": 0.1,
-    "fuse_s": 21.6,
-    "layout_s": 26.7,
-    "total_s": 48.5,
-    "wall_clock_s": 49.7
+    "fuse_s": 24.9,
+    "layout_s": 21.5,
+    "total_s": 46.5,
+    "wall_clock_s": 47.4
    }
   }
  }
