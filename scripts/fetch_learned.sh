@@ -11,3 +11,5 @@ from huggingface_hub import snapshot_download
 for repo in ["facebook/map-anything", "Ruicheng/moge-2-vitl-normal"]:
     print(repo, snapshot_download(repo))
 PY
+# the learned damage detector (Grounding DINO tiny, CLIP ViT-B/32, SAM 2.1 small: about 1.5 GB)
+cd "$(dirname "$0")/.." && python -c "from ysplan import damage_learned as d; d._models(); print(d.DINO, d.CLIP, d.SAM)"
