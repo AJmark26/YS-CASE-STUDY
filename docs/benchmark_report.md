@@ -3,8 +3,10 @@
 All numbers come from `bench/` and regenerate with the commands under "Reproduce every
 number" in the README. The LiDAR plans and the LiDAR rows of `bench/benchmark.json` come from
 `1b05d6b` (fix-loop round 7), which changes only the openings: rooms, walls, ceilings and damage
-match the plans `d340327` made to within 1e-11 m. The video rows come from `c2ef7cd`, the photo
-rows from `f6d0eab` (room stitching, rooms measured without their doorway stills).
+match the plans `d340327` made to within 1e-11 m. The video and photo rows come from `9c8590c`
+(fix-loop round 8), rerun from the learned depth cached at `c2ef7cd` (video) and `f6d0eab` (photo:
+room stitching, rooms measured without their doorway stills); their room outlines and walls match
+those commits' plans, and only how floor areas are reported changed.
 
 ## What could be measured
 
