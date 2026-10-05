@@ -15,14 +15,18 @@ def _runs(mask):
     return list(zip(np.where(d == 1)[0], np.where(d == -1)[0]))
 
 
-def _segments(U, polys, cax, tol_line=0.03, ext=1.0, min_tall=1.0):
-    """Stretches of wall line to search along axis `cax` (0: lines of constant u, 2: of constant v).
+def _segments(U, polys, cax, tol_line=0.03, ext=1.0, reach=0.0, min_tall=1.0):
+    """Stretches of wall line to search along axis `cax` (0: lines of constant u, 2: of constant v),
+    as (line, start, end, stretches): a gap counts only if it overlaps one of `stretches`, but
+    the line is read from `start` to `end`, `reach` further at both ends.
 
     Every room outline edge lies on a wall line; its stretch is searched, extended by `ext` at
     both ends so a door next to a corner is not cut off. A wall line that is not an outline edge
     but runs through a room (a partition between two rooms that this capture merged into one)
     is searched too if it is a tall wall: at least `min_tall` metres of it hold wall points at
-    most heights."""
+    most heights. Where a capture's room outline stops at a door, the door runs past the end
+    of its stretch; reading the line `reach` further finds its far jamb (fix-loop round 7).
+    Collinear stretches whose reaches overlap are read as one line, so no gap is found twice."""
     from shapely.geometry import Point
     from .layout import wall_lines
     segs = []
@@ -34,7 +38,7 @@ def _segments(U, polys, cax, tol_line=0.03, ext=1.0, min_tall=1.0):
                 continue
             pos = (y0 + y1) / 2 if horiz else (x0 + x1) / 2
             lo, hi = sorted([x0, x1] if horiz else [y0, y1])
-            segs.append([pos, lo - ext, hi + ext])
+            segs.append([pos, lo - ext, hi + ext, [(lo - ext, hi + ext)]])
     aax = 2 if cax == 0 else 0
     for pos, _ in wall_lines(U, cax):
         if any(abs(pos - s_[0]) < tol_line for s_ in segs):
@@ -52,15 +56,16 @@ def _segments(U, polys, cax, tol_line=0.03, ext=1.0, min_tall=1.0):
         mid[0 if aax == 0 else 1] = float(np.median(a))
         mid[0 if cax == 0 else 1] = pos
         if any(p.buffer(-0.1).contains(Point(mid)) for p in polys.values()):
-            segs.append([pos, float(a.min()), float(a.max())])
+            segs.append([pos, float(a.min()), float(a.max()), [(float(a.min()), float(a.max()))]])
     segs.sort()
     merged = []
     for sg in segs:
-        if merged and abs(sg[0] - merged[-1][0]) < tol_line and sg[1] <= merged[-1][2]:
+        if merged and abs(sg[0] - merged[-1][0]) < tol_line and sg[1] <= merged[-1][2] + 2 * reach:
             merged[-1][2] = max(merged[-1][2], sg[2])
+            merged[-1][3] = merged[-1][3] + sg[3]
         else:
             merged.append(list(sg))
-    return merged
+    return [(pos, lo - reach, hi + reach, st) for pos, lo, hi, st in merged]
 
 
 def _crossed(G, carved, cax, pos, t, offsets):
@@ -80,7 +85,7 @@ def _crossed(G, carved, cax, pos, t, offsets):
 
 def detect_lines(U, G, polys, carved_low, carved_mid, tol=0.06, band=(0.3, 1.9), bin_m=0.02,
                  n_slices=16, min_door=0.55, max_door=1.3, max_opening=2.6, min_win=0.4,
-                 cross_frac=0.5, depth=(0.25, 0.45)):
+                 cross_frac=0.5, depth=(0.25, 0.45), sigma_drift=0.0):
     """Doors, openings and windows along the plan's wall lines (see _segments).
 
     The wall is cut into 2 cm columns along the line, and each column scores the share of 10 cm
@@ -95,7 +100,8 @@ def detect_lines(U, G, polys, carved_low, carved_mid, tol=0.06, band=(0.3, 1.9),
 
     Each jamb is the edge of the solid wall beside the gap, found per height slice (the wall
     point nearest the gap) and then the median over slices. Its sigma is the spread over
-    slices divided by sqrt(slices), plus 0.5 cm sensor bias, so a ragged jamb (a door leaf,
+    slices divided by sqrt(slices), plus 0.5 cm sensor bias and the capture's residual drift
+    split over the two jambs, as for a wall face (measure.walls): a ragged jamb (a door leaf,
     clutter) or one seen at few heights gets a wider interval.
     """
     from shapely.geometry import Point
@@ -105,7 +111,7 @@ def detect_lines(U, G, polys, carved_low, carved_mid, tol=0.06, band=(0.3, 1.9),
     out = []
     for cax in (0, 2):
         aax = 2 if cax == 0 else 0
-        for pos, s0, s1 in _segments(U, polys, cax):
+        for pos, s0, s1, stretches in _segments(U, polys, cax, reach=max_opening * 1.1):
             near = hm & (np.abs(U[:, cax] - pos) < tol) & (U[:, aax] > s0) & (U[:, aax] < s1)
             if near.sum() < 50:
                 continue
@@ -118,10 +124,16 @@ def detect_lines(U, G, polys, carved_low, carved_mid, tol=0.06, band=(0.3, 1.9),
             occ[bi, si] = True
             occ_s = occ | (np.roll(occ, 1, 0) & np.roll(occ, -1, 0))     # 2 cm voxel holes
             frac = occ_s.mean(1)
-            ref = np.percentile(frac[frac > 0], 90) if (frac > 0).any() else 0
+            ac = a0 + (np.arange(nb) + 0.5) * bin_m
+            own = np.zeros(nb, bool)
+            for lo, hi in stretches:
+                own |= (ac > lo) & (ac < hi)
+            ref = np.percentile(frac[own & (frac > 0)], 90) if (own & (frac > 0)).any() else 0
             solid = frac >= max(0.25, 0.5 * ref)
             low_wall = occ_s[:, :n_low].mean(1) >= 0.6
             for k0, k1 in _runs(~solid):
+                if not own[k0:k1].any():
+                    continue                      # beyond the stretch: only read for far jambs
                 if k0 < 3 or k1 > nb - 3 or not (solid[k0 - 3:k0].all() and solid[k1:k1 + 3].all()):
                     continue                      # needs solid wall on both sides
                 g0, g1 = a0 + k0 * bin_m, a0 + k1 * bin_m
@@ -154,8 +166,8 @@ def detect_lines(U, G, polys, carved_low, carved_mid, tol=0.06, band=(0.3, 1.9),
                     continue
                 l, r = float(np.median(jl)), float(np.median(jr))
                 width = r - l
-                sl = np.hypot(np.std(jl) / np.sqrt(len(jl)), 0.005)
-                sr = np.hypot(np.std(jr) / np.sqrt(len(jr)), 0.005)
+                sl = np.sqrt((np.std(jl) / np.sqrt(len(jl))) ** 2 + 0.005 ** 2 + sigma_drift ** 2 / 2)
+                sr = np.sqrt((np.std(jr) / np.sqrt(len(jr))) ** 2 + 0.005 ** 2 + sigma_drift ** 2 / 2)
                 if kind == "door":
                     if not (min_door <= width <= max_opening):
                         continue

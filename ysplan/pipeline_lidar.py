@@ -90,7 +90,7 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high
             "wall_observed_fraction": round(float(np.mean([w["observed_fraction"] for w in wl])), 3),
             "squared_by_deg": round(float(np.degrees(yaw_r)), 2),
         })
-    ops = openings.detect_lines(U, G, polys, c_low, c_mid)
+    ops = openings.detect_lines(U, G, polys, c_low, c_mid, sigma_drift=sigma_drift)
     for i, o in enumerate(ops, 1):
         o["id"] = f"{o['type'][0].upper()}{i}"
         o["width_m"] = measure._val(o["width_m"], o.pop("sigma_m") * tier_scale)
