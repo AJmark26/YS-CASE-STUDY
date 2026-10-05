@@ -209,6 +209,30 @@ What this shows:
   room, its outline takes a different jog (t1, t3: walls 12 cm off with 1 to 2 cm intervals, so
   the intervals are not calibrated for this error).
 
+Six more cuts were made on 2026-10-05 at `c8426ea` (`bench/walkin_extra.json`), from other
+parts of the walks and with other headings and formats, to look for crashes before the live test:
+
+| Test | Cut from | What changed | Ran in | Rooms (areas, test vs full m²) | Walls | Median wall difference | Inside 95% interval |
+|---|---|---|---|---|---|---|---|
+| f1 | floor_only, 0 to 25 s | heading turned 90° | 37 s | 2 (6.0 vs 4.2, 5.2 vs 7.9) | 5 | 37.2 cm | 2 of 5 |
+| f2 | floor_only, 60 to 100 s | older export format, zip | 70 s | 2 (19.2 vs 16.8, 8.7 vs 8.4) | 7 | 5.2 cm | 4 of 7 |
+| f3 | with_ceiling, 0 to 30 s | heading turned 300° | 52 s | 2 (19.0 vs 7.6, 7.4 vs 4.3) | 0 | | |
+| f4 | with_ceiling, 170 to 215 s | none | 94 s | 4; floor not seen, flagged | 4 | 15.8 cm | 0 of 4 |
+| f5 | single_room, 0 to 16 s | heading turned 10° | 22 s | 2 (6.8 vs 6.9; the other seen through a door) | 3 | 1.5 cm | 2 of 3 |
+| f6 | with_ceiling, 50 to 100 s | heading turned 120°, zip | 94 s | 2 (19.7 vs 7.6, 10.9 vs 11.4) | 1 | 61.3 cm | 0 of 1 |
+
+- All six ran with one command and no settings, in 22 to 94 s with damage detection.
+- They repeat the rehearsal's weak point rather than finding a new one. In f3 and f6 a room
+  runs on through openings into the next spaces (19.0 and 19.7 against 7.6 m²), and the walls
+  bounding such a room come out tens of centimetres off. Where a room is matched cleanly (f5's
+  bedroom, f2's R3), its walls land within a few centimetres. Over all ten cuts, 14 of 30
+  compared walls fall inside their 95% intervals, against 29 of 29 between full captures: on a
+  short walk the intervals cover measurement noise, not a different outline.
+- f6 is the one cut that reports a ceiling: 2.348 ± 0.013 m in its merged room, from the part
+  of the ceiling the cut saw, which is within 1.7 cm of the full capture's R5 (2.365 m); the
+  merged room also takes in R2, whose ceiling is 2.465 m. A ceiling is measured over the part of
+  a room where it was seen, so a merged room reports the ceiling of one of its parts.
+
 ## Timing
 
 One run at a time, 4 CPU cores (Xeon 2.8 GHz), no GPU; `timing_s` in each `plan.json`.

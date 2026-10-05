@@ -141,6 +141,21 @@ python scripts/walkin_check.py out/walkin/t1_bedroom:out/c00a170fe1_lidar out/wa
     out/walkin/t3_bedroom2:out/1a8384c3f6_lidar out/walkin/t4_ceiling_only:out/c7d28f72c6_lidar --json bench/walkin.json
 ```
 
+Six more cuts (`bench/walkin_extra.json`) are made and scored the same way:
+
+```
+python scripts/make_test_capture.py data/1a8384c3f6 data/walkin/f1_start_rot90 --start 0 --end 25 --reframe 90
+python scripts/make_test_capture.py data/1a8384c3f6 data/walkin/f2_mid_old --start 60 --end 100 --old-format --zip
+python scripts/make_test_capture.py data/c7d28f72c6 data/walkin/f3_start_rot300 --start 0 --end 30 --reframe 300
+python scripts/make_test_capture.py data/c7d28f72c6 data/walkin/f4_end --start 170 --end 215
+python scripts/make_test_capture.py data/c00a170fe1 data/walkin/f5_first16 --start 0 --end 16 --reframe 10
+python scripts/make_test_capture.py data/c7d28f72c6 data/walkin/f6_mid_rot120_zip --start 50 --end 100 --reframe 120 --zip
+for t in f1_start_rot90 f2_mid_old.zip f3_start_rot300 f4_end f5_first16 f6_mid_rot120_zip.zip; do python -m ysplan data/walkin/$t -o out/walkin/${t%.zip}; done
+python scripts/walkin_check.py out/walkin/f1_start_rot90:out/1a8384c3f6_lidar out/walkin/f2_mid_old:out/1a8384c3f6_lidar \
+    out/walkin/f3_start_rot300:out/c7d28f72c6_lidar out/walkin/f4_end:out/c7d28f72c6_lidar \
+    out/walkin/f5_first16:out/c00a170fe1_lidar out/walkin/f6_mid_rot120_zip:out/c7d28f72c6_lidar --json bench/walkin_extra.json
+```
+
 Every `plan.json` validates against [docs/plan.schema.json](docs/plan.schema.json)
 (`python scripts/validate_plans.py out` checks them all).
 

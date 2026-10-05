@@ -126,7 +126,7 @@ the difference of two measurements falls inside their combined interval.
 | Same wall, two captures (29 walls) | 100% (82.8% without the drift term) |
 | Same ceiling, two halves of a capture (6 rooms) | 6 of 6 |
 | Same opening, two captures (12 matches, 7 of them the same door) | 7 of 12 (6 of the 7 same doors) |
-| Walk-in rehearsal walls against the full capture (10 walls) | 6 of 10 |
+| Walk-in rehearsal walls against the full capture (30 walls, 10 cuts) | 14 of 30 |
 | Video walls against LiDAR (19 walls) | 18 of 19 with the tier factor of 5, fitted on these walls (13 of 19 without) |
 | Video and photo floor areas against LiDAR (16 rooms, 4 footprints) | lower bound holds on 20 of 20 (round 8); as intervals, 7 of 20 held |
 
@@ -195,6 +195,9 @@ format, a zip), run cold with one command, scored against the full capture's pla
 | Three rooms, 41 s, old format, zip | 3 | 17.1 vs 7.6; 8.6 vs 4.3; 4.6 vs 5.9 | 1 | 4.4 cm | within 0.4 to 0.7 cm |
 | Bedroom, 19 s, turned 200° | 1 | 15.9 vs 11.1 | 6 | 2.6 cm | not in view |
 | Looking up only, 32 s | 3 | floor not seen, heights withheld | 1 | 135 cm | withheld |
+
+Six more cuts (benchmark report) also all ran, in 22 to 94 s; in two of them a room ran on
+through openings into the next spaces (19.0 and 19.7 against 7.6 m²).
 
 Known failure modes, worst first:
 
