@@ -15,7 +15,7 @@ Status key: **met**, **partial** (exists, with the gap named), **not met** (and 
 | Video tier: handheld walkthrough | `ysplan/pipeline_video.py` | `plan.json` from `rgb.mp4` | met for iPhone video with ARKit poses (needs the learned models; cached depth reruns without them); a clip without poses runs but recovers no room (experimental) |
 | LiDAR tier: depth, poses, intrinsics | `ysplan/pipeline_lidar.py` | `plan.json`, `plan.png` | met |
 | Same output contract at every tier | `docs/plan.schema.json` | one JSON Schema for all tiers | met |
-| Intervals widen as data thins | `ysplan/measure.py` (`tier_scale`, unobserved faces 10 cm) | wider `ci95` at video and photo tiers | partial: video wall intervals are 5 times the LiDAR model (median 5.4 cm), covering 18 of 19 walls against LiDAR, fitted on those walls; photo area intervals cover 2 of 8 rooms; video and photo ceilings withheld |
+| Intervals widen as data thins | `ysplan/measure.py` (`tier_scale`, unobserved faces 10 cm) | wider `ci95` at video and photo tiers | partial: video wall intervals are 5 times the LiDAR model (median 5.4 cm), covering 18 of 19 walls against LiDAR, fitted on those walls; video and photo floor areas, whose intervals held on 7 of 20 against LiDAR, are reported as lower bounds since fix loop round 8 (all 20 hold); video and photo ceilings withheld |
 | Device matrix | `docs/capture_protocol.md`, technical report section 3 | tier by device, with measured accuracy | met; accuracy is measured on inputs made from the samples (depth deleted, stills cut from the video), not on other devices |
 
 ## Part 2: output contract
@@ -27,7 +27,7 @@ Status key: **met**, **partial** (exists, with the gap named), **not met** (and 
 | Damage regions with class and metric extent | `ysplan/damage.py` | `damage.regions[]` with `area_m2` per surface | met at the LiDAR tier with a classical detector (the video and photo tiers do not run damage detection); learned detector not built (the detector interface accepts one) |
 | Concealed-damage flags with the rule that fired | `ysplan/damage.py` (`RULES`, CD1 to CD5) | `damage.flags[]` with `rule` and evidence | met |
 | Scope line items keyed to surfaces | `ysplan/damage.py` | `damage.scope[]` keyed to wall, floor and ceiling ids | met |
-| Interval on every measurement | `ysplan/measure.py` | every value is `{value, sigma, ci95}` | met |
+| Interval on every measurement | `ysplan/measure.py` | every value is `{value, sigma, ci95}` | met; where the data cannot bound a value from above it says so: an unseen ceiling, and floor areas on the video and photo tiers, are lower bounds |
 | One command per capture | `ysplan/__main__.py` | `python -m ysplan <capture>` (folder, zip, or photo folder) | met |
 | JSON to a published schema | `docs/plan.schema.json` | JSON Schema; sample outputs validate | met |
 | Rendered plan | `ysplan/render.py` | `plan.png` | met |
@@ -50,7 +50,7 @@ which gates can be measured and how.
 | Repeatability within 1 cm or 0.5% per wall | `scripts/benchmark.py` (`compare_runs`) | `bench/benchmark.json` | measured, gate fails: 37.9% of 29 walls, median 1.88 cm; all 29 inside their 95% intervals |
 | Drift accountability with on/off ablation | `ysplan/drift.py`, `--no-drift` | `drift_ablation` in `bench/benchmark.json` | met |
 | Photo-tier whole-property stitch | `ysplan/stitch.py`, `bench/photo_vs_lidar_*.json` | `photo.links`, `photo.unstitched_rooms` in `plan.json` | partial: 3 of 6 apartment rooms stitched at the right quarter turn, cameras within 0.30 m of truth, but two stitched rooms overlap by 5.3 m² (noted in the plan); the other doorways lack a straight-on photo from both sides, and the bedroom pair (about 40 degrees off) is rejected |
-| Photo within 8%, video within 3%, calibrated | `scripts/benchmark.py` (tier vs LiDAR) | `bench/benchmark.json` | measured, gates fail: video 13 of 19 walls within 3% (median 2.27%); photo area within 8% on 1 of 8 rooms |
+| Photo within 8%, video within 3%, calibrated | `scripts/benchmark.py` (tier vs LiDAR) | `bench/benchmark.json` | measured, gates fail: video 13 of 19 walls within 3% (median 2.27%); photo area within 8% on 1 of 8 rooms; calibration: video walls 18 of 19 inside their intervals, video and photo areas reported as lower bounds that hold on 20 of 20 |
 
 ## Parts 3 to 5
 

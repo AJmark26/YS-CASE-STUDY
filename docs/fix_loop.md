@@ -16,6 +16,7 @@ are compared; both are given below. Round 3 regenerates the same result it shipp
 | 3 | `5eed22a` | `7b57f35` |
 | 5 | `a79bf15` (declaration) | `e803d09` |
 | 7 | `0113cce` (declaration) | `1b05d6b` |
+| 8 | `26d1fe0` (declaration) | `9c8590c` |
 
 | Round | Gate | Before | After | Outcome |
 |---|---|---|---|---|
@@ -26,9 +27,10 @@ are compared; both are given below. Round 3 regenerates the same result it shipp
 | 5 | Opening widths (2 cm on 85%) | 0 of 38 openings | 0 of 27 openings | shipped, prediction badly wrong |
 | 6 | Walk-in room areas | t3 15.9 against 11.1 m² | no room cut | rejected: the captures' rays contradict it |
 | 7 | Opening widths | 0 of 27 openings | 2 of 56 (3.6%); 12 found by both, 7 of 12 inside the interval | shipped, far short of the gate |
+| 8 | Calibration of video and photo floor areas | 7 of 20 intervals hold against LiDAR | 20 of 20 lower bounds hold | shipped |
 
 Rounds 1 to 3 were run before this file existed, and no numeric prediction was written down
-for them before the fix shipped. Rounds 5 and 7 were declared in advance: each prediction was
+for them before the fix shipped. Rounds 5, 7 and 8 were declared in advance: each prediction was
 committed before any of its code.
 
 ## Round 1: rooms turned against the plan axes (shipped)
@@ -337,3 +339,30 @@ error.
   the shortfall instead would need a model of what is missing, and it differs by tier (wall
   bands of 0.2 to 0.5 m on video, floor the stills never saw on photo) and by capture; nothing
   in a new capture measures it.
+
+### Round 8 result (shipped)
+
+| Measure (video and photo tiers of two captures, against LiDAR) | Before | Predicted | After |
+|---|---|---|---|
+| Area claims that hold (inside the interval, or at or above the bound) | 7 of 20 | 20 of 20 | 20 of 20 |
+| Video rooms | 4 of 8 | 8 of 8 | 8 of 8 |
+| Video footprints | 1 of 2 | 2 of 2 | 2 of 2 |
+| Photo rooms | 2 of 8 | 8 of 8 | 8 of 8 |
+| Photo footprints | 0 of 2 | 2 of 2 | 2 of 2 |
+| Lower bound as a share of the LiDAR area, median | | about 0.4 | 0.40 (0.09 to 0.89) |
+
+Regenerate with `python scripts/fixloop.py --photos <photo sets> --rounds 8` (commits `26d1fe0`
+and `9c8590c`; every area in `bench/fixloop/round8.md`). Both commits rerun the two tiers from
+the same cached learned depth, and their outlines, walls and openings come out identical; only
+how the areas are reported changes.
+
+**Post-mortem.** The result equals the prediction because the rule was written from these
+outputs: this shows the bounds are computed and scored as declared, not that they will hold on
+a new capture. The rule rests on the outline only losing floor. On these 20 areas it did (the
+two above LiDAR, photo R2 and R3 of the apartment, stay within the outline's own noise), and
+the mechanisms behind it (blurred walls, floor out of view) only remove floor, but a video room
+that took in part of the next room would break it; the benchmark would show that as a bound
+above the LiDAR area. The bounds are loose: the median is 0.4 of the LiDAR area, and the
+bedroom capture's photo R2 says only "at least 0.65 m²" for a 6.89 m² room. That is the price of
+not printing a wrong interval; an area estimate from these tiers needs depth that agrees between
+keyframes (video) and stills that see the floor (photo).

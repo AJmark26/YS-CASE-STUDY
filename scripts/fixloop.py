@@ -17,6 +17,8 @@ the "before" look worse.
            carved gaps.
   round 7  opening widths: read each wall stretch far enough to reach the far jamb of a door
            that runs past its end; jamb intervals get the capture's residual drift.
+  round 8  calibration of video and photo floor areas (the LiDAR area at or above the bound, or
+           inside the interval): report them as lower bounds.
 
 Rounds 1 and 3 change only the measurement, so they reuse the same pipeline outputs:
 
@@ -24,7 +26,12 @@ Rounds 1 and 3 change only the measurement, so they reuse the same pipeline outp
     python scripts/fixloop.py --data <data> [--out out] [--rounds 1 3 5]
 
 Rounds 5 and 7 change what the pipeline writes, so they rerun the pipeline at each tag (about
-10 minutes per tag for the three captures).
+10 minutes per tag for the three captures). Round 8 reruns the video and photo tiers at each tag
+from the learned depth cached in <out>/<capture>_video/video_depths.npz and
+<out>/<capture>_photo/photo_recon (so no model runs, about 3 minutes per tag), with the photo sets
+in <photos>/<capture>:
+
+    python scripts/fixloop.py --data <data> --out out --photos photos --rounds 8
 
 Writes bench/fixloop/round<n>.json and bench/fixloop/round<n>.md.
 """
@@ -39,9 +46,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 # round: (commit before the fix, commit after it); the same commits as the fixloop-<n>-* tags
 COMMITS = {1: ("1c3350e5e5", "c0c8046ad8"), 3: ("5eed22a10c", "7b57f3597b"), 5: ("a79bf15331", "e803d09280"),
-           7: ("0113cce40c", "1b05d6b2b1")}
+           7: ("0113cce40c", "1b05d6b2b1"), 8: ("26d1fe0194", "9c8590cef8")}
 CEILING_CAPTURE = "c7d28f72c6"
 CAPTURES = ["1a8384c3f6", "c7d28f72c6", "c00a170fe1"]
+TIER_CAPTURES = ["1a8384c3f6", "c00a170fe1"]          # the captures with video and photo tiers
 
 
 def sh(cmd, cwd=ROOT):
@@ -138,18 +146,71 @@ def openings_round(a):
     return run, rows
 
 
+def areas_round(a):
+    """Round 8 changes how the video and photo tiers report areas, and the commit before it has no
+    lower bounds to score, so one scorer (the current scripts/benchmark.py area_claim) reads both
+    commits' plans. Each video room is compared with the LiDAR room holding most of it, each
+    photo room with the LiDAR room its folder is named after, footprints with the LiDAR footprint."""
+    import numpy as np
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import benchmark as bm
+
+    def run(wt):
+        out, claims = wt / "out8", []
+        for c in TIER_CAPTURES:
+            v, p = out / f"{c}_video", out / f"{c}_photo"
+            v.mkdir(parents=True)
+            shutil.copy(a.out / f"{c}_video" / "video_depths.npz", v)
+            shutil.copytree(a.out / f"{c}_photo" / "photo_recon", p / "photo_recon")
+            sh([sys.executable, "-m", "ysplan", a.data.resolve() / c, "--tier", "video", "-o", v], cwd=wt)
+            sh([sys.executable, "-m", "ysplan", a.photos.resolve() / c, "--tier", "photo", "-o", p], cwd=wt)
+            lid = a.out.resolve() / f"{c}_lidar"
+            L = json.loads((lid / "plan.json").read_text())
+            ref = {r["id"]: r["floor_area_m2"]["value"] for r in L["rooms"]}
+            va = bm.compare_areas(lid, v)
+            P = json.loads((p / "plan.json").read_text())
+            rows = [("video room", x) for x in va["rooms"]] + [("video footprint", va["footprint"])]
+            rows += [("photo room", dict(room=r["id"], **bm.area_claim(r["floor_area_m2"], ref[r["id"]])))
+                     for r in P["rooms"] if r["id"] in ref]
+            rows += [("photo footprint", bm.area_claim(P["footprint_m2"], L["footprint_m2"]["value"]))]
+            claims += [dict(capture=c, kind=k, **x) for k, x in rows]
+        res = {"n_claims": len(claims), "holds": sum(x["holds"] for x in claims)}
+        res["hold_rate"] = round(res["holds"] / len(claims), 3)
+        for k in ("video room", "video footprint", "photo room", "photo footprint"):
+            sub = [x for x in claims if x["kind"] == k]
+            res[k.replace(" ", "_") + "s_hold"] = f"{sum(x['holds'] for x in sub)} of {len(sub)}"
+        r = [x["bound_over_ref"] for x in claims if "bound_over_ref" in x]
+        res["median_bound_over_ref"] = round(float(np.median(r)), 3) if r else None
+        res["below_ref"] = sum(x["outline_m2"] < x["ref_m2"] for x in claims)
+        res["claims"] = claims
+        return res
+    rows = [("hold_rate", "areas whose claim holds against LiDAR", 100, "%"),
+            ("holds", "areas whose claim holds", 1, ""),
+            ("n_claims", "areas compared", 1, ""),
+            ("video_rooms_hold", "video rooms", 1, ""),
+            ("video_footprints_hold", "video footprints", 1, ""),
+            ("photo_rooms_hold", "photo rooms", 1, ""),
+            ("photo_footprints_hold", "photo footprints", 1, ""),
+            ("below_ref", "outline areas below the LiDAR area", 1, ""),
+            ("median_bound_over_ref", "median lower bound as a share of the LiDAR area", 1, "")]
+    return run, rows
+
+
 ROUNDS = {1: ("Wall repeatability", "Square each room on its own before measuring its walls", walls_round),
           3: ("Ceiling height", "Ceiling level minus each room's own floor level", ceiling_round),
           5: ("Opening widths", "Search every wall line for gaps in solid wall, jambs per height slice",
               openings_round),
           7: ("Opening widths", "Follow a door past the end of its wall stretch to its far jamb; "
-              "jamb intervals include residual drift", openings_round)}
+              "jamb intervals include residual drift", openings_round),
+          8: ("Calibration of video and photo floor areas", "Report them as lower bounds (outline area less "
+              "its 95% half-width)", areas_round)}
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", type=Path, default=ROOT / "out")
     ap.add_argument("--data", type=Path, default=ROOT / "data")
+    ap.add_argument("--photos", type=Path, default=ROOT / "photos", help="photo sets, one folder per capture (round 8)")
     ap.add_argument("--rounds", type=int, nargs="+", default=sorted(ROUNDS))
     a = ap.parse_args()
     d = ROOT / "bench" / "fixloop"
@@ -177,6 +238,13 @@ def main():
                 q = after.get(r["room"], {})
                 lines.append(f"| {r['room']} | {r['A']} / {r['B']} | {q.get('A')} / {q.get('B')} | "
                              f"{r.get('spread_cm', 'n/a')} cm | {q.get('spread_cm', 'n/a')} cm |")
+        elif n == 8:
+            lines += ["", "| Capture | Area | LiDAR (m²) | Before: outline, 95% interval | Holds | "
+                      "After: lower bound | Holds |", "| --- | --- | --- | --- | --- | --- | --- |"]
+            for b, c in zip(res["before"]["claims"], res["after"]["claims"]):
+                lines.append(f"| {b['capture']} | {(b['kind'] + ' ' + b.get('room', '')).strip()} | {b['ref_m2']:.2f} | "
+                             f"{b['outline_m2']:.2f}, {b['ci95'][0]:.2f} to {b['ci95'][1]:.2f} | {'yes' if b['holds'] else 'no'} | "
+                             f"{c.get('lower_bound_m2', 'n/a')} | {'yes' if c['holds'] else 'no'} |")
         elif n in (5, 7):
             lines += ["", "| Capture pair | Openings before | Matched before | Openings after | Matched after |",
                       "| --- | --- | --- | --- | --- |"]

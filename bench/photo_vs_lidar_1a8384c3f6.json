@@ -8,7 +8,15 @@
   "bbox_within_8pct": "3/12",
   "area_within_8pct": "1/6",
   "median_abs_bbox_err_pct": 32.2,
-  "area_ci_coverage": "2/6",
+  "area_claims_hold": "6/6",
+  "footprint": {
+   "reported": "lower_bound",
+   "outline_m2": 36.1019,
+   "lower_bound_m2": 31.3215,
+   "ref_m2": 51.1329,
+   "holds": true,
+   "bound_over_ref": 0.613
+  },
   "stitching": {
    "rooms_stitched": 3,
    "rooms_with_true_cameras": 6,
@@ -33,7 +41,9 @@
    "area": 11.8505,
    "area_ref": 16.8329,
    "area_err_pct": -29.6,
-   "area_ci_covers": false,
+   "area_reported": "lower_bound",
+   "area_lower_bound": 9.2909,
+   "area_claim_holds": true,
    "bbox": [
     3.24,
     3.64
@@ -62,7 +72,9 @@
    "area": 12.8585,
    "area_ref": 11.0731,
    "area_err_pct": 16.1,
-   "area_ci_covers": true,
+   "area_reported": "lower_bound",
+   "area_lower_bound": 9.7974,
+   "area_claim_holds": true,
    "bbox": [
     2.009,
     6.44
@@ -98,7 +110,9 @@
    "area": 8.4974,
    "area_ref": 8.4132,
    "area_err_pct": 1.0,
-   "area_ci_covers": true,
+   "area_reported": "lower_bound",
+   "area_lower_bound": 6.6185,
+   "area_claim_holds": true,
    "bbox": [
     2.894,
     2.923
@@ -125,7 +139,9 @@
    "area": 4.8046,
    "area_ref": 7.885,
    "area_err_pct": -39.1,
-   "area_ci_covers": false,
+   "area_reported": "lower_bound",
+   "area_lower_bound": 3.2607,
+   "area_claim_holds": true,
    "bbox": [
     1.985,
     2.42
@@ -154,7 +170,9 @@
    "area": 2.2594,
    "area_ref": 4.2423,
    "area_err_pct": -46.7,
-   "area_ci_covers": false,
+   "area_reported": "lower_bound",
+   "area_lower_bound": 1.4736,
+   "area_claim_holds": true,
    "bbox": [
     1.25,
     2.546
@@ -181,7 +199,9 @@
    "area": 1.125,
    "area_ref": 2.6864,
    "area_err_pct": -58.1,
-   "area_ci_covers": false,
+   "area_reported": "lower_bound",
+   "area_lower_bound": 0.4931,
+   "area_claim_holds": true,
    "bbox": [
     0.96,
     1.16

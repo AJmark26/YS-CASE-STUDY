@@ -244,7 +244,7 @@ Walls are compared as in the repeatability check: each LiDAR room outline, measu
 tiers' 3D points after a per-room alignment (`compare_runs`, `video_vs_lidar_*` in
 `bench/benchmark.json`).
 
-| Capture | Rooms, video (LiDAR) | Footprint, video vs LiDAR | Walls | Within 3% | Median difference | Inside 95% interval |
+| Capture | Rooms, video (LiDAR) | Footprint outline, video vs LiDAR | Walls | Within 3% | Median difference | Inside 95% interval |
 |---|---|---|---|---|---|---|
 | `c00a170fe1` single_room | 1 (2) | 12.1 vs 21.0 m² | 4 | 2 | 2.75% (3.5 cm) | 4 of 4 |
 | `1a8384c3f6` floor only | 7 (6) | 37.0 vs 51.1 m² | 15 | 11 | 2.27% (3.2 cm) | 14 of 15 |
@@ -269,7 +269,8 @@ tiers' 3D points after a per-room alignment (`compare_runs`, `video_vs_lidar_*` 
   bedroom capture its rooms or walls, or merged apartment rooms. The true scale alone recovered
   about 4 of the 14 missing m², so the blur is not only scale. A real fix makes the keyframes'
   depth agree (overlapping MapAnything windows aligned to each other, or a fusion that keeps one
-  surface per wall); it is not built. Use the LiDAR tier for areas.
+  surface per wall); it is not built. Use the LiDAR tier for areas: since fix loop round 8 this
+  tier reports each floor area and the footprint as a lower bound (Floor areas, below).
 - Intervals: the wall error model is the LiDAR one computed on the video points, multiplied by a
   tier factor of 5 (`measure.TIER_SCALE`). At 1 only 13 of 19 differences fall inside the combined
   interval; 5 is the smallest whole factor that covers 18 of 19. It is fitted on these same 19
@@ -322,7 +323,7 @@ alone. A second reconstruction that includes its doorway stills places them, by 
 cameras (0.4 to 1.9 cm and 0.1 to 0.3 degrees apart on the samples). A room with 2 photos keeps its
 stills in: without them apartment R1's walls came out 30 degrees off.
 
-| Room | Stills | Stitched | Area, photo vs LiDAR | Area difference | Interval covers LiDAR | Sides, photo vs LiDAR |
+| Room | Stills | Stitched | Outline area, photo vs LiDAR | Area difference | Interval covered LiDAR (before round 8) | Sides, photo vs LiDAR |
 |---|---|---|---|---|---|---|
 | floor only R3 | 9 | no | 8.50 vs 8.41 m² | +1.0% | yes | 2.89 × 2.92 vs 2.89 × 3.12 m |
 | floor only R2 | 4 | yes | 12.86 vs 11.07 m² | +16% | yes | 2.01 × 6.44 vs 3.83 × 3.95 m |
@@ -343,13 +344,34 @@ stills in: without them apartment R1's walls came out 30 degrees off.
   without them improved those three; R5 and R6 lost 3 and 8 points. On the earlier sets
   (`bench/photo_vs_lidar_*.json` at `245fa04`), whose doorway stills were taken in the doorway
   itself, 2 of 8 rooms were within 8%.
-- The intervals carry the measurement terms and the scale spread between MoGe-2 and the
-  multi-view reconstruction (5% of scale, doubled for area). They do not model unseen floor,
-  which is the dominant error: 2 of 8 cover LiDAR. These are confident wrong answers, and the fix
-  (report a room whose outline rests on unseen floor as a lower bound) is not built.
+- The area intervals carried the measurement terms and the scale spread between MoGe-2 and the
+  multi-view reconstruction (5% of scale, doubled for area). They did not model unseen floor,
+  which is the dominant error: 2 of 8 covered LiDAR. Those were confident wrong answers; since
+  fix loop round 8 the areas are lower bounds (Floor areas, below).
 - MapAnything and MoGe-2 take 18 s to 200 s per room on CPU (9 minutes for the six apartment
   rooms); the reconstruction is cached and the geometry then takes seconds.
 - An earlier floor finder change (floor must cover 2 m² at least 1.1 m below the camera) shrank
   the apartment's photo rooms by 21 to 58%: their stills see under 0.3 m² of floor, so the floor
   was guessed and furniture sides counted as walls. The photo tier keeps the older finder (the
   densest low slab); its heights are not reported anyway.
+
+### Floor areas on both tiers (fix loop round 8)
+
+Floor area is where both lower tiers miss most, and until round 8 their intervals did not say
+so. Each video room is compared with the LiDAR room holding most of it once the two plans are
+registered, each photo room with the LiDAR room its folder was cut from, and each footprint with
+the LiDAR footprint (`areas` in `video_vs_lidar_*` of `bench/benchmark.json`, `footprint` and
+`area_claim_holds` in `bench/photo_vs_lidar_*.json`).
+
+| Areas | Compared | Outline below LiDAR | 95% interval held (before round 8) | Lower bound holds (now) | Bound as a share of LiDAR, median (range) |
+|---|---|---|---|---|---|
+| Video rooms | 8 | 8 | 4 | 8 | 0.39 (0.17 to 0.82) |
+| Video footprints | 2 | 2 | 1 | 2 | 0.40 (0.15 to 0.65) |
+| Photo rooms | 8 | 6 | 2 | 8 | 0.40 (0.09 to 0.89) |
+| Photo footprints | 2 | 2 | 0 | 2 | 0.46 (0.31 to 0.61) |
+| **All** | **20** | **18** | **7** | **20** | **0.40 (0.09 to 0.89)** |
+
+Both tiers now report each floor area and the footprint as a lower bound: the outline area less
+its 95% half-width, with no value or interval, as for an unseen ceiling. The bounds hold on all
+20 but are loose, and the rule was written from these same outputs, so 20 of 20 is not an
+independent test (`docs/fix_loop.md`, round 8).

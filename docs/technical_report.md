@@ -73,8 +73,8 @@ without a usable pair are laid out beside the plan.
 | Device | Tier | Measured on the samples (consistency with the LiDAR tier) |
 |---|---|---|
 | iPhone 12 Pro or later Pro, iPad Pro 2020 or later | LiDAR | same wall in two captures: median 1.88 cm, 37.9% within 1 cm or 0.5% |
-| Other iPhones, with an app saving ARKit poses | video | walls within 3% of LiDAR: 13 of 19 (median 2.3%); rooms fragment, footprint 28 to 42% short; no ceilings |
-| Any phone, stills | photo | 3 of 8 rooms stitched, cameras within 0.30 m of truth; floor area within 8% on 1 of 8, 30 to 85% short on six |
+| Other iPhones, with an app saving ARKit poses | video | walls within 3% of LiDAR: 13 of 19 (median 2.3%); rooms fragment, footprint 28 to 42% short, so areas are lower bounds; no ceilings |
+| Any phone, stills | photo | 3 of 8 rooms stitched, cameras within 0.30 m of truth; floor area within 8% on 1 of 8, 30 to 85% short on six, so areas are lower bounds |
 | Android, or any clip without poses | video without poses | runs; recovers no room (the chained windows disagree in heading) |
 
 The video inputs are the sample captures with their depth deleted, and the photo inputs are
@@ -114,7 +114,7 @@ Each measurement carries a 1-sigma built from these terms (`ysplan/measure.py`,
 | Floor area | perimeter times mean face sigma | 5% of the area |
 | Ceiling height | ceiling level, floor level, 0.5 cm sensor, ceiling relief across the room | 1.1 cm; relief (0.5 to 1.6 cm) is the largest term |
 | Opening width | per jamb: spread over height slices / sqrt(slices), with 0.5 cm and residual loop disagreement / sqrt 2, as for a wall face; both jambs; spread of the two faces of a partition | 2.4 cm (1.3 cm on the bedroom capture, whose drift is smallest) |
-| Video and photo tiers | same terms on predicted depth; video walls and openings times 5 (section 6); photo area adds twice the 5% scale spread | video wall 5.4 cm; photo area 10 to 20% of the area |
+| Video and photo tiers | same terms on predicted depth; video walls and openings times 5 (section 6); photo adds the 5% scale spread; floor areas are lower bounds: outline area less 1.96 sigma | video wall 5.4 cm; area bound median 0.4 of the LiDAR area |
 
 ## 6. Calibration
 
@@ -128,7 +128,7 @@ the difference of two measurements falls inside their combined interval.
 | Same opening, two captures (12 matches, 7 of them the same door) | 7 of 12 (6 of the 7 same doors) |
 | Walk-in rehearsal walls against the full capture (10 walls) | 6 of 10 |
 | Video walls against LiDAR (19 walls) | 18 of 19 with the tier factor of 5, fitted on these walls (13 of 19 without) |
-| Photo room areas against LiDAR (8 rooms) | 2 of 8: unseen floor is not in the interval |
+| Video and photo floor areas against LiDAR (16 rooms, 4 footprints) | lower bound holds on 20 of 20 (round 8); as intervals, 7 of 20 held |
 
 For measurement noise the wall intervals are wide enough, if anything wide: with the residual
 loop disagreement they carry, every difference falls inside (median combined 1-sigma 3.6 cm
@@ -168,8 +168,9 @@ when it shipped are in brackets.
 | 4 | Wall calibration | a second surface near the face | 86.7% inside | 90 to 100%, 2 to 10x wider | rejected |
 | 5 | Opening widths (declared in advance) | detection follows the room split; jambs moved by clutter | 0 of 38 | 0 of 27 | shipped; prediction badly wrong |
 | 7 | Opening widths (declared in advance) | a door where a room outline stops runs off the searched wall, so one jamb is never seen | 0 of 27 | 2 of 56 (3.6%) | shipped, far short |
+| 8 | Area calibration, video and photo (declared in advance) | predicted depth can only lose floor, which the interval does not model | 7 of 20 hold | 20 of 20 hold, as lower bounds | shipped |
 
-Rounds 5 and 7 were declared before their code. Round 5's prediction (about 15 openings found
+Rounds 5, 7 and 8 were declared before their code. Round 5's prediction (about 15 openings found
 by both captures, 15 to 25% within 2 cm) was badly wrong: 3 were found by both, and they were
 different objects; it did stop openings being drawn across wall the same capture saw as solid
 (12 of 37 to 3 of 24). Round 7 logged why the other capture dropped each of the 24 openings
@@ -180,6 +181,8 @@ the same captures. 7 of the 12 are the same door, 0.5 to 8.6 cm apart in width (
 each jamb moves 2 to 3 cm between captures, as wall faces do, and five ways of placing the jamb
 edge all gave medians of 3.8 to 5.2 cm, so 2 cm between two captures is out of reach with this
 data. The cost is phantoms: reported openings doubled (24 to 50), some of them across a room.
+Round 8 made the video and photo floor areas, up to 85% short with intervals that held on 7 of
+20, into lower bounds, which hold on all 20; those tiers now say "at least" instead of an area.
 
 ## 9. Walk-in rehearsal and known failure modes
 
@@ -215,5 +218,6 @@ Known failure modes, worst first:
 8. **Lower-tier outlines.** Video walls land within a few centimetres, but its footprint is 28 to
    42% short: keyframe depth varies 11 to 16% in scale, walls blur into bands 0.3 to 0.5 m thick,
    and outlines stop at their inner edge. A photo room is measured as the part its stills saw, with an
-   interval that does not cover the unseen part: 2 of 8 cover LiDAR. These are confident wrong
-   answers; reporting such rooms as lower bounds is the next fix.
+   interval that did not cover the unseen part (2 of 8 covered LiDAR). Since round 8 both tiers
+   report floor areas as lower bounds, which hold on all 20 checked but are loose (median 0.4
+   of the LiDAR area).

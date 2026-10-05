@@ -8,7 +8,15 @@
   "bbox_within_8pct": "0/4",
   "area_within_8pct": "0/2",
   "median_abs_bbox_err_pct": 61.5,
-  "area_ci_coverage": "0/2",
+  "area_claims_hold": "2/2",
+  "footprint": {
+   "reported": "lower_bound",
+   "outline_m2": 7.8306,
+   "lower_bound_m2": 6.4345,
+   "ref_m2": 21.0142,
+   "holds": true,
+   "bound_over_ref": 0.306
+  },
   "stitching": {
    "rooms_stitched": 0,
    "rooms_with_true_cameras": 2,
@@ -31,7 +39,9 @@
    "area": 6.7963,
    "area_ref": 14.1254,
    "area_err_pct": -51.9,
-   "area_ci_covers": false,
+   "area_reported": "lower_bound",
+   "area_lower_bound": 5.4539,
+   "area_claim_holds": true,
    "bbox": [
     2.36,
     2.88
@@ -58,7 +68,9 @@
    "area": 1.0343,
    "area_ref": 6.8888,
    "area_err_pct": -85.0,
-   "area_ci_covers": false,
+   "area_reported": "lower_bound",
+   "area_lower_bound": 0.6505,
+   "area_claim_holds": true,
    "bbox": [
     0.86,
     1.24

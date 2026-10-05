@@ -175,7 +175,10 @@ Every `plan.json` validates against [docs/plan.schema.json](docs/plan.schema.jso
 `rooms[]` hold `polygon`, `walls[]` (each with `length_m`, `observed_fraction` and
 `face_points`), `floor_area_m2` and `ceiling_height_m`. The ceiling height has a `status` of
 `measured` or `not_observed`; when the ceiling wasn't seen, it reports a lower bound instead of
-a guess. Every measured value is `{value, sigma, ci95}`. `openings[]` give type, width and the
+a guess. Every measured value is `{value, sigma, ci95}`. On the video and photo tiers each floor
+area and the footprint is a lower bound instead (`status: "lower_bound"`, `lower_bound_m2`, with
+the outline's own area in `outline_m2`): predicted depth leaves outlines short of the walls and of
+floor the camera never saw, so their areas can only come out low (fix loop round 8). `openings[]` give type, width and the
 rooms they connect. `adjacency[]` lists room pairs and the doors between them. `drift` reports
 loop closures and the misalignment before and after correction.
 
@@ -184,6 +187,6 @@ loop closures and the misalignment before and after correction.
 | Tier | State |
 |---|---|
 | LiDAR | Runs end to end on all three sample captures |
-| Video, ARKit poses | Runs (MapAnything depth); 13 of 19 walls within 3% of LiDAR, but rooms fragment and the footprint comes out 28 to 42% short; ceilings withheld |
+| Video, ARKit poses | Runs (MapAnything depth); 13 of 19 walls within 3% of LiDAR, but rooms fragment and the footprint comes out 28 to 42% short, so areas are reported as lower bounds; ceilings withheld |
 | Video, no poses | Experimental: runs, recovers no room |
-| Photo | Runs (MapAnything, MoGe-2 scale); 3 of 8 sample rooms stitched at doorways, cameras within 0.30 m of truth; floor area within 8% of LiDAR on 1 of 8 rooms, 30 to 85% short on six |
+| Photo | Runs (MapAnything, MoGe-2 scale); 3 of 8 sample rooms stitched at doorways, cameras within 0.30 m of truth; floor area within 8% of LiDAR on 1 of 8 rooms, 30 to 85% short on six, so areas are reported as lower bounds |

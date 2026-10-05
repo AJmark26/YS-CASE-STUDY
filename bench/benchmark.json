@@ -1093,7 +1093,97 @@
   "within_ci95": 0.933,
   "gate_pct": 3.0,
   "rooms_found": 7,
-  "rooms_reference": 6
+  "rooms_reference": 6,
+  "areas": {
+   "rooms": [
+    {
+     "room": "R1",
+     "ref_room": "R2",
+     "share_in_ref": 0.985,
+     "reported": "lower_bound",
+     "outline_m2": 10.1587,
+     "lower_bound_m2": 9.0474,
+     "ref_m2": 11.0731,
+     "holds": true,
+     "bound_over_ref": 0.817
+    },
+    {
+     "room": "R2",
+     "ref_room": "R1",
+     "share_in_ref": 1.0,
+     "reported": "lower_bound",
+     "outline_m2": 8.3432,
+     "lower_bound_m2": 6.8136,
+     "ref_m2": 16.8329,
+     "holds": true,
+     "bound_over_ref": 0.405
+    },
+    {
+     "room": "R3",
+     "ref_room": "R3",
+     "share_in_ref": 0.879,
+     "reported": "lower_bound",
+     "outline_m2": 5.3555,
+     "lower_bound_m2": 3.6358,
+     "ref_m2": 8.4132,
+     "holds": true,
+     "bound_over_ref": 0.432
+    },
+    {
+     "room": "R4",
+     "ref_room": "R4",
+     "share_in_ref": 0.989,
+     "reported": "lower_bound",
+     "outline_m2": 3.9807,
+     "lower_bound_m2": 2.015,
+     "ref_m2": 7.885,
+     "holds": true,
+     "bound_over_ref": 0.256
+    },
+    {
+     "room": "R5",
+     "ref_room": "R1",
+     "share_in_ref": 0.982,
+     "reported": "lower_bound",
+     "outline_m2": 3.6698,
+     "lower_bound_m2": 2.8435,
+     "ref_m2": 16.8329,
+     "holds": true,
+     "bound_over_ref": 0.169
+    },
+    {
+     "room": "R6",
+     "ref_room": "R5",
+     "share_in_ref": 0.816,
+     "reported": "lower_bound",
+     "outline_m2": 3.5015,
+     "lower_bound_m2": 1.5525,
+     "ref_m2": 4.2423,
+     "holds": true,
+     "bound_over_ref": 0.366
+    },
+    {
+     "room": "R7",
+     "ref_room": "R6",
+     "share_in_ref": 0.936,
+     "reported": "lower_bound",
+     "outline_m2": 2.0065,
+     "lower_bound_m2": 1.2933,
+     "ref_m2": 2.6864,
+     "holds": true,
+     "bound_over_ref": 0.481
+    }
+   ],
+   "rooms_hold": "7 of 7",
+   "footprint": {
+    "reported": "lower_bound",
+    "outline_m2": 37.0159,
+    "lower_bound_m2": 33.0934,
+    "ref_m2": 51.1329,
+    "holds": true,
+    "bound_over_ref": 0.647
+   }
+  }
  },
  "video_vs_lidar_c00a170fe1": {
   "registration_fit": 0.627,
@@ -1156,7 +1246,31 @@
   "within_ci95": 1.0,
   "gate_pct": 3.0,
   "rooms_found": 1,
-  "rooms_reference": 2
+  "rooms_reference": 2,
+  "areas": {
+   "rooms": [
+    {
+     "room": "R1",
+     "ref_room": "R1",
+     "share_in_ref": 0.833,
+     "reported": "lower_bound",
+     "outline_m2": 12.0994,
+     "lower_bound_m2": 3.1124,
+     "ref_m2": 14.1254,
+     "holds": true,
+     "bound_over_ref": 0.22
+    }
+   ],
+   "rooms_hold": "1 of 1",
+   "footprint": {
+    "reported": "lower_bound",
+    "outline_m2": 12.0994,
+    "lower_bound_m2": 3.1124,
+    "ref_m2": 21.0142,
+    "holds": true,
+    "bound_over_ref": 0.148
+   }
+  }
  },
  "drift_ablation": {
   "1a8384c3f6_lidar": {

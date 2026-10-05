@@ -1,0 +1,539 @@
+{
+ "round": 8,
+ "gate": "Calibration of video and photo floor areas",
+ "fix": "Report them as lower bounds (outline area less its 95% half-width)",
+ "commits": [
+  "26d1fe0194",
+  "9c8590cef8"
+ ],
+ "before": {
+  "n_claims": 20,
+  "holds": 7,
+  "hold_rate": 0.35,
+  "video_rooms_hold": "4 of 8",
+  "video_footprints_hold": "1 of 2",
+  "photo_rooms_hold": "2 of 8",
+  "photo_footprints_hold": "0 of 2",
+  "median_bound_over_ref": null,
+  "below_ref": 18,
+  "claims": [
+   {
+    "capture": "1a8384c3f6",
+    "kind": "video room",
+    "room": "R1",
+    "ref_room": "R2",
+    "share_in_ref": 0.985,
+    "reported": "interval",
+    "outline_m2": 10.1587,
+    "ci95": [
+     9.0473,
+     11.27
+    ],
+    "ref_m2": 11.0731,
+    "holds": true
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "video room",
+    "room": "R2",
+    "ref_room": "R1",
+    "share_in_ref": 1.0,
+    "reported": "interval",
+    "outline_m2": 8.3432,
+    "ci95": [
+     6.8136,
+     9.8728
+    ],
+    "ref_m2": 16.8329,
+    "holds": false
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "video room",
+    "room": "R3",
+    "ref_room": "R3",
+    "share_in_ref": 0.879,
+    "reported": "interval",
+    "outline_m2": 5.3555,
+    "ci95": [
+     3.6359,
+     7.0751
+    ],
+    "ref_m2": 8.4132,
+    "holds": false
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "video room",
+    "room": "R4",
+    "ref_room": "R4",
+    "share_in_ref": 0.989,
+    "reported": "interval",
+    "outline_m2": 3.9807,
+    "ci95": [
+     2.015,
+     5.9463
+    ],
+    "ref_m2": 7.885,
+    "holds": false
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "video room",
+    "room": "R5",
+    "ref_room": "R1",
+    "share_in_ref": 0.982,
+    "reported": "interval",
+    "outline_m2": 3.6698,
+    "ci95": [
+     2.8435,
+     4.4961
+    ],
+    "ref_m2": 16.8329,
+    "holds": false
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "video room",
+    "room": "R6",
+    "ref_room": "R5",
+    "share_in_ref": 0.816,
+    "reported": "interval",
+    "outline_m2": 3.5015,
+    "ci95": [
+     1.5525,
+     5.4504
+    ],
+    "ref_m2": 4.2423,
+    "holds": true
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "video room",
+    "room": "R7",
+    "ref_room": "R6",
+    "share_in_ref": 0.936,
+    "reported": "interval",
+    "outline_m2": 2.0065,
+    "ci95": [
+     1.2933,
+     2.7197
+    ],
+    "ref_m2": 2.6864,
+    "holds": true
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "video footprint",
+    "reported": "interval",
+    "outline_m2": 37.0159,
+    "ci95": [
+     33.0934,
+     40.9384
+    ],
+    "ref_m2": 51.1329,
+    "holds": false
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "photo room",
+    "room": "R1",
+    "reported": "interval",
+    "outline_m2": 11.8505,
+    "ci95": [
+     9.2909,
+     14.4101
+    ],
+    "ref_m2": 16.8329,
+    "holds": false
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "photo room",
+    "room": "R2",
+    "reported": "interval",
+    "outline_m2": 12.8585,
+    "ci95": [
+     9.7973,
+     15.9197
+    ],
+    "ref_m2": 11.0731,
+    "holds": true
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "photo room",
+    "room": "R3",
+    "reported": "interval",
+    "outline_m2": 8.4974,
+    "ci95": [
+     6.6186,
+     10.3762
+    ],
+    "ref_m2": 8.4132,
+    "holds": true
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "photo room",
+    "room": "R4",
+    "reported": "interval",
+    "outline_m2": 4.8046,
+    "ci95": [
+     3.2607,
+     6.3485
+    ],
+    "ref_m2": 7.885,
+    "holds": false
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "photo room",
+    "room": "R5",
+    "reported": "interval",
+    "outline_m2": 2.2594,
+    "ci95": [
+     1.4736,
+     3.0452
+    ],
+    "ref_m2": 4.2423,
+    "holds": false
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "photo room",
+    "room": "R6",
+    "reported": "interval",
+    "outline_m2": 1.125,
+    "ci95": [
+     0.4932,
+     1.7568
+    ],
+    "ref_m2": 2.6864,
+    "holds": false
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "photo footprint",
+    "reported": "interval",
+    "outline_m2": 36.1019,
+    "ci95": [
+     31.3215,
+     40.8823
+    ],
+    "ref_m2": 51.1329,
+    "holds": false
+   },
+   {
+    "capture": "c00a170fe1",
+    "kind": "video room",
+    "room": "R1",
+    "ref_room": "R1",
+    "share_in_ref": 0.833,
+    "reported": "interval",
+    "outline_m2": 12.0994,
+    "ci95": [
+     3.1125,
+     21.0863
+    ],
+    "ref_m2": 14.1254,
+    "holds": true
+   },
+   {
+    "capture": "c00a170fe1",
+    "kind": "video footprint",
+    "reported": "interval",
+    "outline_m2": 12.0994,
+    "ci95": [
+     3.1124,
+     21.0864
+    ],
+    "ref_m2": 21.0142,
+    "holds": true
+   },
+   {
+    "capture": "c00a170fe1",
+    "kind": "photo room",
+    "room": "R1",
+    "reported": "interval",
+    "outline_m2": 6.7963,
+    "ci95": [
+     5.4539,
+     8.1387
+    ],
+    "ref_m2": 14.1254,
+    "holds": false
+   },
+   {
+    "capture": "c00a170fe1",
+    "kind": "photo room",
+    "room": "R2",
+    "reported": "interval",
+    "outline_m2": 1.0343,
+    "ci95": [
+     0.6506,
+     1.418
+    ],
+    "ref_m2": 6.8888,
+    "holds": false
+   },
+   {
+    "capture": "c00a170fe1",
+    "kind": "photo footprint",
+    "reported": "interval",
+    "outline_m2": 7.8306,
+    "ci95": [
+     6.4344,
+     9.2268
+    ],
+    "ref_m2": 21.0142,
+    "holds": false
+   }
+  ]
+ },
+ "after": {
+  "n_claims": 20,
+  "holds": 20,
+  "hold_rate": 1.0,
+  "video_rooms_hold": "8 of 8",
+  "video_footprints_hold": "2 of 2",
+  "photo_rooms_hold": "8 of 8",
+  "photo_footprints_hold": "2 of 2",
+  "median_bound_over_ref": 0.396,
+  "below_ref": 18,
+  "claims": [
+   {
+    "capture": "1a8384c3f6",
+    "kind": "video room",
+    "room": "R1",
+    "ref_room": "R2",
+    "share_in_ref": 0.985,
+    "reported": "lower_bound",
+    "outline_m2": 10.1587,
+    "lower_bound_m2": 9.0474,
+    "ref_m2": 11.0731,
+    "holds": true,
+    "bound_over_ref": 0.817
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "video room",
+    "room": "R2",
+    "ref_room": "R1",
+    "share_in_ref": 1.0,
+    "reported": "lower_bound",
+    "outline_m2": 8.3432,
+    "lower_bound_m2": 6.8136,
+    "ref_m2": 16.8329,
+    "holds": true,
+    "bound_over_ref": 0.405
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "video room",
+    "room": "R3",
+    "ref_room": "R3",
+    "share_in_ref": 0.879,
+    "reported": "lower_bound",
+    "outline_m2": 5.3555,
+    "lower_bound_m2": 3.6358,
+    "ref_m2": 8.4132,
+    "holds": true,
+    "bound_over_ref": 0.432
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "video room",
+    "room": "R4",
+    "ref_room": "R4",
+    "share_in_ref": 0.989,
+    "reported": "lower_bound",
+    "outline_m2": 3.9807,
+    "lower_bound_m2": 2.015,
+    "ref_m2": 7.885,
+    "holds": true,
+    "bound_over_ref": 0.256
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "video room",
+    "room": "R5",
+    "ref_room": "R1",
+    "share_in_ref": 0.982,
+    "reported": "lower_bound",
+    "outline_m2": 3.6698,
+    "lower_bound_m2": 2.8435,
+    "ref_m2": 16.8329,
+    "holds": true,
+    "bound_over_ref": 0.169
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "video room",
+    "room": "R6",
+    "ref_room": "R5",
+    "share_in_ref": 0.816,
+    "reported": "lower_bound",
+    "outline_m2": 3.5015,
+    "lower_bound_m2": 1.5525,
+    "ref_m2": 4.2423,
+    "holds": true,
+    "bound_over_ref": 0.366
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "video room",
+    "room": "R7",
+    "ref_room": "R6",
+    "share_in_ref": 0.936,
+    "reported": "lower_bound",
+    "outline_m2": 2.0065,
+    "lower_bound_m2": 1.2933,
+    "ref_m2": 2.6864,
+    "holds": true,
+    "bound_over_ref": 0.481
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "video footprint",
+    "reported": "lower_bound",
+    "outline_m2": 37.0159,
+    "lower_bound_m2": 33.0934,
+    "ref_m2": 51.1329,
+    "holds": true,
+    "bound_over_ref": 0.647
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "photo room",
+    "room": "R1",
+    "reported": "lower_bound",
+    "outline_m2": 11.8505,
+    "lower_bound_m2": 9.2909,
+    "ref_m2": 16.8329,
+    "holds": true,
+    "bound_over_ref": 0.552
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "photo room",
+    "room": "R2",
+    "reported": "lower_bound",
+    "outline_m2": 12.8585,
+    "lower_bound_m2": 9.7974,
+    "ref_m2": 11.0731,
+    "holds": true,
+    "bound_over_ref": 0.885
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "photo room",
+    "room": "R3",
+    "reported": "lower_bound",
+    "outline_m2": 8.4974,
+    "lower_bound_m2": 6.6185,
+    "ref_m2": 8.4132,
+    "holds": true,
+    "bound_over_ref": 0.787
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "photo room",
+    "room": "R4",
+    "reported": "lower_bound",
+    "outline_m2": 4.8046,
+    "lower_bound_m2": 3.2607,
+    "ref_m2": 7.885,
+    "holds": true,
+    "bound_over_ref": 0.414
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "photo room",
+    "room": "R5",
+    "reported": "lower_bound",
+    "outline_m2": 2.2594,
+    "lower_bound_m2": 1.4736,
+    "ref_m2": 4.2423,
+    "holds": true,
+    "bound_over_ref": 0.347
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "photo room",
+    "room": "R6",
+    "reported": "lower_bound",
+    "outline_m2": 1.125,
+    "lower_bound_m2": 0.4931,
+    "ref_m2": 2.6864,
+    "holds": true,
+    "bound_over_ref": 0.184
+   },
+   {
+    "capture": "1a8384c3f6",
+    "kind": "photo footprint",
+    "reported": "lower_bound",
+    "outline_m2": 36.1019,
+    "lower_bound_m2": 31.3215,
+    "ref_m2": 51.1329,
+    "holds": true,
+    "bound_over_ref": 0.613
+   },
+   {
+    "capture": "c00a170fe1",
+    "kind": "video room",
+    "room": "R1",
+    "ref_room": "R1",
+    "share_in_ref": 0.833,
+    "reported": "lower_bound",
+    "outline_m2": 12.0994,
+    "lower_bound_m2": 3.1124,
+    "ref_m2": 14.1254,
+    "holds": true,
+    "bound_over_ref": 0.22
+   },
+   {
+    "capture": "c00a170fe1",
+    "kind": "video footprint",
+    "reported": "lower_bound",
+    "outline_m2": 12.0994,
+    "lower_bound_m2": 3.1124,
+    "ref_m2": 21.0142,
+    "holds": true,
+    "bound_over_ref": 0.148
+   },
+   {
+    "capture": "c00a170fe1",
+    "kind": "photo room",
+    "room": "R1",
+    "reported": "lower_bound",
+    "outline_m2": 6.7963,
+    "lower_bound_m2": 5.4539,
+    "ref_m2": 14.1254,
+    "holds": true,
+    "bound_over_ref": 0.386
+   },
+   {
+    "capture": "c00a170fe1",
+    "kind": "photo room",
+    "room": "R2",
+    "reported": "lower_bound",
+    "outline_m2": 1.0343,
+    "lower_bound_m2": 0.6505,
+    "ref_m2": 6.8888,
+    "holds": true,
+    "bound_over_ref": 0.094
+   },
+   {
+    "capture": "c00a170fe1",
+    "kind": "photo footprint",
+    "reported": "lower_bound",
+    "outline_m2": 7.8306,
+    "lower_bound_m2": 6.4345,
+    "ref_m2": 21.0142,
+    "holds": true,
+    "bound_over_ref": 0.306
+   }
+  ]
+ }
+}
