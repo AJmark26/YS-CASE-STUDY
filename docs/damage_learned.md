@@ -48,18 +48,26 @@ these three models). None of the models was trained on building damage.
 | Real damage laid on, LiDAR | apartment capture | all 3 found: mould +4%, crack +35%, stain found but named a crack, -80% |
 | Real damage laid on, video | bedroom capture | mould found (area -2%); stain detected in one keyframe but not kept; crack missed |
 | Clean walls and real damage laid on, photos | apartment photo set (`doorways_1a8384c3f6`), 23 photos | clean: 0 detections, 0 regions; laid on: mould found (area -11%); the stain was detected in a doorway photo of an unstitched room and lost; the crack was in one photo only, not detected |
+| Clean walls and real damage laid on, LiDAR, **held out** | third capture (single_scan_with_ceiling), 143 frames, not used for any tuning | clean: 11 frame detections, 1 region, a 0.02 m² "crack" on the hallway ceiling that looks real (below); laid on: mould found (area +21%), crack found (area +32%), stain missed |
 
 The CLIP texts, threshold and crop were tuned on the boxes from the 11 photos, the bedroom
 capture's frames and the apartment capture's frames. The "clean things" texts for floor tiles,
 marble, wall panel seams, skirting boards, cables and door frames were added after looking at the
 apartment's false alarms, so the apartment is not held out. The third capture
-(single_scan_with_ceiling) was kept out of all tuning.
+(single_scan_with_ceiling) was kept out of all tuning and run once at the end with the final
+settings (the held-out row above). Its other 10 frame detections were all dropped by the vote or
+the walls-and-ceilings rule: two mats and a spot on the floor, the marble of a basin top, light
+marks on a wall beside a curtain, and small grey spots on a ceiling, a mirror and a glass door.
 
 ## What it finds in the samples
 
 The bedroom capture's bathroom has a real hairline crack above the cistern (frame 1327). The
 detector names it a crack in that frame (CLIP 0.90), but no other frame sees it closely enough,
 so the multi-view vote drops it and the plan reports no region.
+
+The third capture's only region is a thin, straight dark line on the hallway ceiling (frame 7928,
+picture in `tier-results/damage_learned/heldout_ceiling_line_frame7928.jpg` in the project files). By
+eye it looks like a hairline crack along a ceiling board joint; nobody has checked it in the room.
 
 ## Limits
 
@@ -75,6 +83,8 @@ so the multi-view vote drops it and the plan reports no region.
   detector remains the one that test measures.
 - Photo-tier rooms are 30 to 85% short (tier-results), and damage seen from a room that is not
   stitched, or on walls outside a room's outline, is lost.
-- Run time on 4 CPU cores, detection and mapping together: bedroom LiDAR 25 frames 165 s,
-  apartment LiDAR 77 frames 520 s, bedroom video 22 keyframes 140 to 320 s, apartment photo set
-  23 photos 220 s.
+- Run time on 4 CPU cores, detection and mapping together, is about 6 to 15 s per frame: bedroom
+  LiDAR 25 frames 165 s, apartment LiDAR 77 frames 520 s, third capture LiDAR 143 frames 17 to 20
+  min, bedroom video 22 frames 140 to 320 s, apartment photo set 23 photos 220 s. The apartment
+  video has 66 frames to check, so about 7 to 16 min (estimated from the per-frame time, not run).
+  LiDAR runs use the classical detector unless `--damage-detector learned` is given.
