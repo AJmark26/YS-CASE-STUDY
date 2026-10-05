@@ -50,8 +50,9 @@ def main(argv=None):
     ap.add_argument("--no-drift", action="store_true", help="use raw ARKit poses (ablation)")
     ap.add_argument("--no-damage", action="store_true", help="skip damage detection")
     ap.add_argument("--damage-detector", choices=["classical", "learned"], default=None,
-                    help="classical: colour statistics of the LiDAR surface textures (LiDAR default); learned: "
-                         "Grounding DINO + CLIP + SAM 2 on the frames (video default; needs requirements-learned.txt)")
+                    help="classical: colour statistics of the LiDAR surface textures (LiDAR default); "
+                         "learned: Grounding DINO + CLIP + SAM 2 on the frames (video and photo default; "
+                         "needs requirements-learned.txt)")
     ap.add_argument("--wet", nargs="*", default=None, help="room ids that are wet rooms (default: small rooms)")
     ap.add_argument("--no-cache", action="store_true", help="recompute learned depth even if cached")
     ap.add_argument("--video-depth", choices=["mapanything", "mono"], default="mapanything",
