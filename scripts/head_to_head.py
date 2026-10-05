@@ -31,7 +31,8 @@ def our_values(plan):
             v = w["length_m"]
             out[w["id"]] = ("length", f"{r['id']} wall, {v['value']:.2f} m", v["value"], v.get("ci95"))
         a = r["floor_area_m2"]
-        out[f"{r['id']}:area"] = ("area", f"{r['id']} floor area, {a['value']:.1f} m²", a["value"], a.get("ci95"))
+        if a.get("value") is not None:              # video and photo tiers give a lower bound only
+            out[f"{r['id']}:area"] = ("area", f"{r['id']} floor area, {a['value']:.1f} m²", a["value"], a.get("ci95"))
         c = r.get("ceiling_height_m") or {}
         if c.get("value") is not None:
             out[f"{r['id']}:ceiling"] = ("length", f"{r['id']} ceiling height, {c['value']:.2f} m", c["value"], c.get("ci95"))

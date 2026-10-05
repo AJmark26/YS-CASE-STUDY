@@ -10,7 +10,8 @@ A wall length is the distance between its two bounding faces, so sigma_len^2 = s
 Unobserved faces (no supporting points) get sigma = 10 cm. The `tier_scale` factor multiplies
 wall and ceiling sigmas for tiers whose depth is predicted rather than sensed: 1 for LiDAR,
 and for the video and photo tiers the value their benchmark against LiDAR calibrates
-(written to plan.json as `interval_scale`).
+(written to plan.json as `interval_scale`). Their floor areas and footprint are reported as lower
+bounds (`lower_bound_area`): the outline can only lose floor there, which no interval models.
 """
 import numpy as np
 
@@ -249,6 +250,29 @@ def withheld(reason):
     """Ceiling record when no height may be reported (same shape as a not-observed ceiling)."""
     return {"value": None, "ci95": None, "sigma": None, "status": "not_observed", "reason": reason,
             "lower_bound_m": None}
+
+
+PREDICTED_AREA = ("depth is predicted, not sensed: the outline stops inside walls the depth smears into "
+                  "bands and leaves out floor the camera did not see, so it can only lose floor; "
+                  "reported as a lower bound (docs/fix_loop.md, round 8)")
+
+
+def lower_bound_area(m, reason=PREDICTED_AREA):
+    """Area record for an outline that can only lose floor: the bound is the outline area less
+    its 95% half-width, so wall noise that pushes the outline out cannot lift the bound past the
+    true area. Same shape as a not-observed ceiling (no value, no interval); `outline_m2` keeps
+    the outline's own area for checking."""
+    return {"value": None, "sigma": None, "ci95": None, "status": "lower_bound",
+            "lower_bound_m2": round(max(0.0, float(m["value"] - Z95 * m["sigma"])), 4),
+            "outline_m2": m["value"], "reason": reason}
+
+
+def areas_as_lower_bounds(result, reason=PREDICTED_AREA):
+    """Every room's floor area and the footprint as lower bounds (the video and photo tiers)."""
+    for r in result["rooms"]:
+        r["floor_area_m2"] = lower_bound_area(r["floor_area_m2"], reason)
+    result["footprint_m2"] = lower_bound_area(result["footprint_m2"], reason)
+    return result
 
 
 def _val(v, s):

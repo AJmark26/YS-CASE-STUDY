@@ -9,7 +9,9 @@ PALETTE = ["#dbe9f6", "#fde2c8", "#d9f0d3", "#f3d9ec", "#fff3bf", "#e0e0f8", "#d
 
 
 def _fmt(v, nd=2, unit=""):
-    """Value with its 95% half-width, e.g. '3.21 ±0.03 m'."""
+    """Value with its 95% half-width, e.g. '3.21 ±0.03 m', or a lower bound, e.g. '≥9.0 m²'."""
+    if v and v.get("status") == "lower_bound":
+        return f"≥{v['lower_bound_m2']:.{nd}f}{unit}"
     if not v or v.get("value") is None:
         return "n/a"
     pm = f" ±{1.96 * v['sigma']:.{nd}f}" if v.get("sigma") else ""

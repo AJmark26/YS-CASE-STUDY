@@ -6,8 +6,10 @@ room ids; --swap R3:R4 handles renumbering). Two questions are kept apart:
 1. Room geometry. Each photo room's wall points are registered (90 deg rotations plus
    translation, 2D) onto the LiDAR wall points around the reference room. Both fused clouds are
    then measured with the pipeline's own measure.walls() on the LiDAR outline, as the benchmark
-   does for the video tier. Also: floor area, bounding-box sides, and whether the 95% area
-   interval covered the LiDAR value. The photo-tier gate is +-8% on wall lengths and footprint.
+   does for the video tier. Also: floor area, bounding-box sides, and whether the reported area
+   holds against the LiDAR value (inside its 95% interval, or at or above its lower bound, as
+   photo areas are reported since fix-loop round 8). The photo-tier gate is +-8% on wall
+   lengths and footprint.
 2. Stitching. Every photo is a frame of the LiDAR capture, so its true camera position is known
    (poses_world.npy of the LiDAR run). The stitched plan records where it put each camera. A
    rigid 2D fit of all stitched cameras onto their true positions gives the plan-wide frame; a
@@ -95,6 +97,8 @@ def main():
             continue
         g = ref[lid]
         A, Ag = r["floor_area_m2"], g["floor_area_m2"]["value"]
+        claim = bm.area_claim(A, Ag)
+        Av = claim["outline_m2"]
         bb, bbg = sorted(r["bbox_m"]), sorted(g["bbox_m"])
         ppoly, gpoly = Polygon(r["polygon"]).buffer(0), Polygon(g["polygon"]).buffer(0)
         sub = P_xy[contains_xy(ppoly.buffer(0.4), P_xy[:, 0], P_xy[:, 1])]
@@ -129,8 +133,9 @@ def main():
         rows.append({"room": r["id"], "lidar_room": lid, "stitched": r.get("stitched", False),
                      "registration_fit": round(fit, 3) if fit else None, "placement": place,
                      "walls": walls,
-                     "area": A["value"], "area_ref": Ag, "area_err_pct": round(100 * (A["value"] / Ag - 1), 1),
-                     "area_ci_covers": bool(A["ci95"][0] <= Ag <= A["ci95"][1]),
+                     "area": Av, "area_ref": Ag, "area_err_pct": round(100 * (Av / Ag - 1), 1),
+                     "area_reported": claim["reported"], "area_lower_bound": claim.get("lower_bound_m2"),
+                     "area_claim_holds": claim["holds"],
                      "bbox": bb, "bbox_ref": bbg,
                      "bbox_err_pct": [round(100 * (x / y - 1), 1) for x, y in zip(bb, bbg)]})
     werr = np.array([w["diff_pct"] for r in rows for w in r["walls"]])
@@ -144,7 +149,8 @@ def main():
                "bbox_within_8pct": f"{int(np.sum(np.abs(errs) <= 8))}/{len(errs)}",
                "area_within_8pct": f"{int(np.sum(np.abs(aerr) <= 8))}/{len(aerr)}",
                "median_abs_bbox_err_pct": round(float(np.median(np.abs(errs))), 1) if len(errs) else None,
-               "area_ci_coverage": f"{sum(r['area_ci_covers'] for r in rows)}/{len(rows)}",
+               "area_claims_hold": f"{sum(r['area_claim_holds'] for r in rows)}/{len(rows)}",
+               "footprint": bm.area_claim(ph["footprint_m2"], li["footprint_m2"]["value"]),
                "stitching": {"rooms_stitched": len(st), "rooms_with_true_cameras": len(cams),
                              "rotation_within_5deg": f"{sum(abs(r['placement']['rotation_err_deg']) <= 5 for r in st)}/{len(st)}",
                              "median_offset_m": round(float(np.median([r['placement']['offset_m'] for r in st])), 3) if st else None,

@@ -259,7 +259,8 @@ def _capture_from(paths, root, log=print):
 
 
 def widen(result, scale_sigma=SCALE_SIGMA):
-    """Add the relative scale error of learned depth to every length, area and height."""
+    """Add the relative scale error of learned depth to every length, area and height, then
+    report floor areas and the footprint as lower bounds (measure.areas_as_lower_bounds)."""
     for r in result["rooms"]:
         for w in r["walls"]:
             L, s0 = w["length_m"]["value"], w["length_m"]["sigma"]
@@ -286,7 +287,7 @@ def widen(result, scale_sigma=SCALE_SIGMA):
                 notes.append(f"rooms {result['rooms'][i]['id']} and {result['rooms'][j]['id']} overlap by "
                              f"{a:.2f} m2 in the stitched plan; the footprint counts that floor once")
     result["footprint_m2"] = measure._val(fp, float(np.sqrt(sum(r["floor_area_m2"]["sigma"] ** 2 for r in result["rooms"]))))
-    return result
+    return measure.areas_as_lower_bounds(result)     # stills miss floor, so areas are lower bounds
 
 
 def folder_segment(pc, owner, min_cells=200):

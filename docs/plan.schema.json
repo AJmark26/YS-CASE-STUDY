@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "ysplan/plan.schema.json",
   "title": "ysplan plan.json",
-  "description": "Output of `python -m ysplan <capture>` at every tier. Lengths in metres, areas in square metres, plan coordinates in the gravity-aligned, Manhattan-aligned frame described by `alignment`. Every measured quantity is a `measure`: value, 1-sigma and 95% interval.",
+  "description": "Output of `python -m ysplan <capture>` at every tier. Lengths in metres, areas in square metres, plan coordinates in the gravity-aligned, Manhattan-aligned frame described by `alignment`. Every measured quantity is a `measure`: value, 1-sigma and 95% interval. On the video and photo tiers, floor areas and the footprint are lower bounds instead (`area`).",
   "type": "object",
   "required": [
     "schema_version",
@@ -121,7 +121,7 @@
       "description": "space seen only through a doorway, kept out of the plan"
     },
     "footprint_m2": {
-      "$ref": "#/$defs/measure"
+      "$ref": "#/$defs/area"
     },
     "drift": {
       "type": "object",
@@ -194,6 +194,33 @@
           },
           "minItems": 2,
           "maxItems": 2
+        }
+      }
+    },
+    "area": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/measure"
+        }
+      ],
+      "description": "a floor area: a measure, or on the video and photo tiers a lower bound (value, sigma and ci95 null)",
+      "properties": {
+        "status": {
+          "enum": [
+            "lower_bound"
+          ],
+          "description": "absent when the area is measured with an interval"
+        },
+        "lower_bound_m2": {
+          "type": "number",
+          "description": "the floor area is at least this: outline area less its 95% half-width"
+        },
+        "outline_m2": {
+          "type": "number",
+          "description": "area of the outline found, for checking; not an estimate of the room"
+        },
+        "reason": {
+          "type": "string"
         }
       }
     },
@@ -271,7 +298,7 @@
           }
         },
         "floor_area_m2": {
-          "$ref": "#/$defs/measure"
+          "$ref": "#/$defs/area"
         },
         "ceiling_height_m": {
           "allOf": [

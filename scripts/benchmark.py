@@ -155,6 +155,33 @@ def summary(rows, ok):
                                                 for x in rows])), 3) if rows else None}
 
 
+def area_claim(rec, truth):
+    """What a plan says about an area and whether the reference agrees: inside its 95% interval,
+    or at or above its lower bound (video and photo tiers since fix-loop round 8)."""
+    if rec.get("status") == "lower_bound":
+        return {"reported": "lower_bound", "outline_m2": rec["outline_m2"], "lower_bound_m2": rec["lower_bound_m2"],
+                "ref_m2": truth, "holds": bool(rec["lower_bound_m2"] <= truth),
+                "bound_over_ref": round(rec["lower_bound_m2"] / truth, 3)}
+    return {"reported": "interval", "outline_m2": rec["value"], "ci95": rec["ci95"], "ref_m2": truth,
+            "holds": bool(rec["ci95"][0] <= truth <= rec["ci95"][1])}
+
+
+def compare_areas(dir_ref, dir_test):
+    """Each test room's area against the reference room holding most of it, and the footprints."""
+    R, R_xy, _ = load(dir_ref)
+    X, X_xy, _ = load(dir_test)
+    T, _ = rp.register(R_xy, X_xy)
+    ref = [(r, Polygon(r["polygon"]).buffer(0)) for r in R["rooms"]]
+    rows = []
+    for r in X["rooms"]:
+        q = Polygon(rp.apply(T, np.array(r["polygon"]))).buffer(0)
+        g, gp = max(ref, key=lambda t: t[1].intersection(q).area)
+        rows.append(dict({"room": r["id"], "ref_room": g["id"], "share_in_ref": round(gp.intersection(q).area / q.area, 3)},
+                         **area_claim(r["floor_area_m2"], g["floor_area_m2"]["value"])))
+    return {"rooms": rows, "rooms_hold": f"{sum(x['holds'] for x in rows)} of {len(rows)}",
+            "footprint": area_claim(X["footprint_m2"], R["footprint_m2"]["value"])}
+
+
 def main(out_root="out", bench_dir="bench"):
     out_root, bench = Path(out_root), Path(bench_dir)
     bench.mkdir(exist_ok=True)
@@ -207,7 +234,8 @@ def main(out_root="out", bench_dir="bench"):
             r = compare_runs(out_root / f"{cid}_lidar", d)
             ok = lambda x, g=gate: abs(x["diff_pct"]) <= g
             res[key] = dict({k: v for k, v in r.items()}, **summary(r["walls"], ok), gate_pct=gate,
-                            rooms_found=len(V["rooms"]), rooms_reference=len(L["rooms"]))
+                            rooms_found=len(V["rooms"]), rooms_reference=len(L["rooms"]),
+                            areas=compare_areas(out_root / f"{cid}_lidar", d))
     # drift ablation
     for tag in ["1a8384c3f6_lidar", "1a8384c3f6_lidar_nodrift"]:
         d = out_root / tag

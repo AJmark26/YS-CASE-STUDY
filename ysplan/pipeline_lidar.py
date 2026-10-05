@@ -116,6 +116,8 @@ def run(capture_dir, drift=True, step=4, log=print, cap=None, tier="lidar", high
         "drift": drift_rep,
         "timing_s": {k: round(v, 1) for k, v in timing.items()},
     }
+    if tier == "video":                              # the photo tier converts after stitching (pipeline_photo.widen)
+        measure.areas_as_lower_bounds(result)
     if not floor_seen:
         result["capture"]["notes"].append(
             "floor not seen: no heights are reported, and the room outlines rest on walls seen high up "
