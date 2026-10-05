@@ -48,7 +48,10 @@ def main(argv=None):
     ap.add_argument("-o", "--out", type=Path, default=None)
     ap.add_argument("--tier", choices=["lidar", "video", "photo"], default=None)
     ap.add_argument("--no-drift", action="store_true", help="use raw ARKit poses (ablation)")
-    ap.add_argument("--no-damage", action="store_true", help="skip damage detection (LiDAR tier)")
+    ap.add_argument("--no-damage", action="store_true", help="skip damage detection")
+    ap.add_argument("--damage-detector", choices=["classical", "learned"], default=None,
+                    help="classical: colour statistics of the LiDAR surface textures (LiDAR default); learned: "
+                         "Grounding DINO + CLIP + SAM 2 on the frames (video default; needs requirements-learned.txt)")
     ap.add_argument("--wet", nargs="*", default=None, help="room ids that are wet rooms (default: small rooms)")
     ap.add_argument("--no-cache", action="store_true", help="recompute learned depth even if cached")
     ap.add_argument("--video-depth", choices=["mapanything", "mono"], default="mapanything",
@@ -72,7 +75,12 @@ def main(argv=None):
         if not a.no_damage:
             from . import damage, io_stray
             cap = io_stray.load(a.capture)
-            result["damage"], surfs = damage.run(cap, pipeline_lidar.run.poses, result, a.capture / "rgb.mp4", wet=a.wet)
+            if a.damage_detector == "learned":
+                from . import damage_learned
+                frames = damage_learned.video_frames(cap, damage_learned.pick_frames(cap), a.capture / "rgb.mp4")
+                result["damage"], surfs = damage_learned.run(cap, pipeline_lidar.run.poses, result, frames, wet=a.wet)
+            else:
+                result["damage"], surfs = damage.run(cap, pipeline_lidar.run.poses, result, a.capture / "rgb.mp4", wet=a.wet)
             _save_textures(out / "textures", surfs, result["damage"]["regions"])
         import numpy as np
         np.save(out / "poses_world.npy", pipeline_lidar.run.poses.astype(np.float32))   # drift-corrected camera->world
@@ -83,6 +91,15 @@ def main(argv=None):
                                       cache=None if a.no_cache else out / "video_depths.npz")
             result, cloud, U = pipeline_lidar.run(a.capture, drift=not a.no_drift, cap=vc, tier="video",
                                                   tier_scale=measure.TIER_SCALE["video"])
+            if not a.no_damage and a.damage_detector != "classical":     # the classical detector needs LiDAR depth
+                from . import damage_learned
+                try:
+                    frames = damage_learned.video_frames(vc, sorted(vc.depths)[::2], a.capture / "rgb.mp4")
+                    result["damage"], surfs = damage_learned.run(vc, pipeline_lidar.run.poses, result, frames,
+                                                                 wall_band=damage_learned.VIDEO_WALL_BAND, wet=a.wet)
+                    _save_textures(out / "textures", surfs, result["damage"]["regions"])
+                except (ImportError, OSError) as e:                     # models not installed or downloadable
+                    print(f"[damage] learned detector unavailable, no damage regions: {e}")
         else:                                   # plain clip from any camera app: no poses
             clip = a.capture if a.capture.is_file() else sorted(
                 [*a.capture.glob("*.mp4"), *a.capture.glob("*.MOV"), *a.capture.glob("*.mov")])[0]
@@ -93,6 +110,14 @@ def main(argv=None):
     else:
         from . import pipeline_photo
         result, cloud, U = pipeline_photo.run(a.capture, cache=None if a.no_cache else out / "photo_recon")
+        if not a.no_damage and a.damage_detector != "classical" and pipeline_photo.run.capture is not None:
+            from . import damage_learned
+            pc = pipeline_photo.run.capture
+            plan = dict(result, alignment=pipeline_photo.run.alignment)   # the photos' world is the plan frame
+            dmg, surfs = damage_learned.run(pc, pc.T_wc, plan, damage_learned.photo_frames(pc, pipeline_photo.run.paths),
+                                            wall_band=damage_learned.VIDEO_WALL_BAND, wet=a.wet)
+            result["damage"] = dmg
+            _save_textures(out / "textures", surfs, dmg["regions"])
     result.setdefault("timing_s", {})["wall_clock_s"] = round(time.time() - t_start, 1)   # load to plan, damage included
     (out / "plan.json").write_text(json.dumps(result, indent=1))
     import numpy as np
