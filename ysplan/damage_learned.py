@@ -188,6 +188,15 @@ def photo_frames(pc, paths):
     return out
 
 
+def wet_rooms(plan):
+    """damage.wet_rooms (small rooms are assumed wet) for any tier: video and photo floor areas are
+    lower bounds with no value, so their outline area stands in."""
+    from . import damage
+    rooms = [dict(r, floor_area_m2={"value": r["floor_area_m2"]["value"] if r["floor_area_m2"].get("value") is not None
+                                     else r["floor_area_m2"]["outline_m2"]}) for r in plan["rooms"]]
+    return damage.wet_rooms(dict(plan, rooms=rooms))
+
+
 def run(cap, poses, plan, frames, wall_band=None, wet=None, log=print, min_area_m2=0.01):
     """Learned damage for any tier. `frames`: list of (frame number, BGR image) whose depth the
     capture holds (LiDAR or video keyframes, or photo_frames for the photos). The plan needs an
@@ -244,9 +253,9 @@ def run(cap, poses, plan, frames, wall_band=None, wet=None, log=print, min_area_
             regs.append(r)
     # the returned surfaces carry the real colours, for the texture images
     surfs = damage.unwrap(cap, poses, plan, ids, None, log=lambda *a: None, wall_band=band, frames=frames)
-    fl = damage.flags(plan, regs, surfs, wet)
+    wr = wet_rooms(plan) if wet is None else wet
+    fl = damage.flags(plan, regs, surfs, wr)
     sc = damage.scope(plan, regs, fl, surfs)
-    wr = damage.wet_rooms(plan) if wet is None else wet
     n_det = sum(len(d) for _, d in found.values())
     log(f"[damage] learned detector: {n_det} detections in {len(found)} frames -> {len(regs)} regions, "
         f"{len(fl)} flags ({__import__('time').time() - t0:.0f} s)")
