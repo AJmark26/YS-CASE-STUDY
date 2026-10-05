@@ -101,8 +101,11 @@ def opening_ends(o):
     return np.array([o["line"], o["from"]]), np.array([o["line"], o["to"]])
 
 
-def unwrap(cap, poses, plan, frame_ids, video, log=print, upsample=2):
-    """Accumulate coloured depth points of `frame_ids` into every surface texture of `plan`."""
+def unwrap(cap, poses, plan, frame_ids, video, log=print, upsample=2, wall_band=WALL_BAND, frames=None):
+    """Accumulate coloured depth points of `frame_ids` into every surface texture of `plan`.
+    `frames`: (frame number, BGR image) pairs to use instead of decoding `video` (photos, or
+    images derived from the frames). `wall_band`: how far behind / in front of a wall outline a
+    point still belongs to the wall (learned depth puts outlines further inside the wall)."""
     from shapely import contains_xy
     from shapely.geometry import Polygon
     from .mono import iter_frames
@@ -117,7 +120,7 @@ def unwrap(cap, poses, plan, frame_ids, video, log=print, upsample=2):
     Hs = np.array([s.height for s in walls])
     n_used = 0
     row_of = {int(cap.frames[i]): i for i in frame_ids}        # video frame number -> capture row
-    for f, bgr in iter_frames(video, sorted(row_of)):
+    for f, bgr in (iter_frames(video, sorted(row_of)) if frames is None else frames):
         i = row_of[f]
         d, c = cap.depth(i)
         H, W = d.shape
@@ -140,7 +143,7 @@ def unwrap(cap, poses, plan, frame_ids, video, log=print, upsample=2):
             rel = xy[:, None, :] - A[None]                         # (n, walls, 2)
             off = np.einsum("nwk,wk->nw", rel, N)
             along = np.einsum("nwk,wk->nw", rel, D)
-            ok = ((off > WALL_BAND[0]) & (off < WALL_BAND[1]) & (along > 0) & (along < Ls[None])
+            ok = ((off > wall_band[0]) & (off < wall_band[1]) & (along > 0) & (along < Ls[None])
                   & (h[:, None] > 0.02) & (h[:, None] < Hs[None]))
             hit = np.where(ok.any(1), np.argmin(np.where(ok, np.abs(off), 9.0), 1), -1)
             for k in np.unique(hit[hit >= 0]):
