@@ -222,8 +222,11 @@ Known failure modes, worst first:
    DINO, CLIP, SAM 2: open models, no damage-specific training; `docs/damage_learned.md`) whose frame masks
    are mapped onto walls and ceilings by a vote across views. With real damage photos laid onto
    the sample walls it found the mould on every tier and raised no false regions on clean walls;
-   stains and cracks are found less reliably, and the samples' one real crack, a hairline seen
-   closely in one frame, is not reported. It adds 2 to 5 minutes on 4 CPU cores.
+   stains and cracks are found less reliably. On the held-out third capture it reports one
+   region, a thin line on the hallway ceiling that looks like a hairline crack (not checked in
+   the room); a hairline in the bedroom's bathroom, seen closely in one frame, is dropped by the
+   vote. It costs 6 to 15 s per frame on 4 CPU cores: 2 to 5 minutes for a one-room video, an
+   estimated 7 to 16 for the whole-apartment video; `--no-damage` skips it.
 8. **Lower-tier outlines.** Video walls land within a few centimetres, but its footprint is 28 to
    42% short: keyframe depth varies 11 to 16% in scale, walls blur into bands 0.3 to 0.5 m thick,
    and outlines stop at their inner edge. A photo room is measured as the part its stills saw, with an

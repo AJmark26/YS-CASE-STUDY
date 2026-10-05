@@ -64,6 +64,9 @@ python scripts/eval_photo.py out/<capture_id>_photo out/<capture_id>_lidar   # r
 On 4 CPU cores with no GPU, a one-room LiDAR capture runs in under 2 minutes. A 115 s
 whole-apartment walk takes about 1 minute for the plan and 6 minutes with damage detection
 (`--no-damage` skips it); the 215 s walk takes 2 and 12 minutes (docs/benchmark_report.md, Timing).
+On the video and photo tiers the learned damage detector costs 6 to 15 s per checked frame: 2 to
+5 minutes for a one-room video, an estimated 7 to 16 minutes for a whole-apartment one
+([docs/damage_learned.md](docs/damage_learned.md), Limits).
 
 ## Running on a new scan
 
