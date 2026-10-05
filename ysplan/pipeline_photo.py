@@ -61,7 +61,11 @@ class PhotoCapture:
         return d, np.where(m, 2, 0).astype(np.uint8)
 
     def K_depth(self, i, shape):
-        return self.K[i].copy()
+        K = self.K[i].copy()                         # K is at depth-map resolution
+        h, w = self.depths[i].shape
+        K[0] *= shape[1] / w
+        K[1] *= shape[0] / h
+        return K
 
 
 def gravity_from_cameras(R_wc):
@@ -570,8 +574,15 @@ def run(capture_dir, log=print, cache=None, gap=1.0):
         x0 += b[2] - b[0] + gap
     linked = {n for l in links for n in l["rooms"]}
     merged = _merged_plan(capture_dir, frames, pose, own, links, log) if links else None
+    # every room's own photos in the stitched plan frame (x, height, y), for later stages (damage)
+    run.capture, _ = merged_capture(capture_dir, [(n, pc, plan_transform(yaw, fy, *pose[n]))
+                                                  for n, (pc, yaw, fy, _) in sorted(frames.items())]) if frames else (None, None)
+    run.paths = [capture_dir / nm for nm in run.capture.names] if frames else []
+    run.alignment = {"yaw_rad": 0.0, "floor_y_world": 0.0}
     if merged is not None:
         result, cloud, U = merged
+        # the joint pass measured in its own Manhattan yaw, quarter turns undone (_merged_plan)
+        run.alignment = dict(result["alignment"])
         result["photo"] = {"per_room": diags, "scale_sigma_rel": SCALE_SIGMA,
                            "stitched": not result.pop("_unstitched"), "links": links,
                            "unstitched_rooms": sorted(n for n in own if n not in linked),
