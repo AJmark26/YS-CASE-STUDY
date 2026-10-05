@@ -115,10 +115,14 @@ def main(argv=None):
             from . import damage_learned
             pc = pipeline_photo.run.capture
             plan = dict(result, alignment=pipeline_photo.run.alignment)   # the photos' world is the plan frame
-            dmg, surfs = damage_learned.run(pc, pc.T_wc, plan, damage_learned.photo_frames(pc, pipeline_photo.run.paths),
-                                            wall_band=damage_learned.VIDEO_WALL_BAND, wet=a.wet)
-            result["damage"] = dmg
-            _save_textures(out / "textures", surfs, dmg["regions"])
+            try:
+                frames = damage_learned.photo_frames(pc, pipeline_photo.run.paths)
+                dmg, surfs = damage_learned.run(pc, pc.T_wc, plan, frames, wall_band=damage_learned.VIDEO_WALL_BAND,
+                                                wet=a.wet)
+                result["damage"] = dmg
+                _save_textures(out / "textures", surfs, dmg["regions"])
+            except (ImportError, OSError) as e:                         # models not installed or downloadable
+                print(f"[damage] learned detector unavailable, no damage regions: {e}")
     result.setdefault("timing_s", {})["wall_clock_s"] = round(time.time() - t_start, 1)   # load to plan, damage included
     (out / "plan.json").write_text(json.dumps(result, indent=1))
     import numpy as np
