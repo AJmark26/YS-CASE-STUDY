@@ -15,13 +15,15 @@ the "before" look worse.
   round 5  opening widths (same opening in two captures within 2 cm, misses count):
            search every wall line for gaps in solid wall instead of each room's outline for
            carved gaps.
+  round 7  opening widths: read each wall stretch far enough to reach the far jamb of a door
+           that runs past its end; jamb intervals get the capture's residual drift.
 
 Rounds 1 and 3 change only the measurement, so they reuse the same pipeline outputs:
 
     python -m ysplan <data>/<capture> -o out/<capture>_lidar      # for each sample capture
     python scripts/fixloop.py --data <data> [--out out] [--rounds 1 3 5]
 
-Round 5 changes what the pipeline writes, so it reruns the pipeline at each tag (about
+Rounds 5 and 7 change what the pipeline writes, so they rerun the pipeline at each tag (about
 10 minutes per tag for the three captures).
 
 Writes bench/fixloop/round<n>.json and bench/fixloop/round<n>.md.
@@ -36,7 +38,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 # round: (commit before the fix, commit after it); the same commits as the fixloop-<n>-* tags
-COMMITS = {1: ("1c3350e5e5", "c0c8046ad8"), 3: ("5eed22a10c", "7b57f3597b"), 5: ("a79bf15331", "e803d09280")}
+COMMITS = {1: ("1c3350e5e5", "c0c8046ad8"), 3: ("5eed22a10c", "7b57f3597b"), 5: ("a79bf15331", "e803d09280"),
+           7: ("0113cce40c", "1b05d6b2b1")}
 CEILING_CAPTURE = "c7d28f72c6"
 CAPTURES = ["1a8384c3f6", "c7d28f72c6", "c00a170fe1"]
 
@@ -138,7 +141,9 @@ def openings_round(a):
 ROUNDS = {1: ("Wall repeatability", "Square each room on its own before measuring its walls", walls_round),
           3: ("Ceiling height", "Ceiling level minus each room's own floor level", ceiling_round),
           5: ("Opening widths", "Search every wall line for gaps in solid wall, jambs per height slice",
-              openings_round)}
+              openings_round),
+          7: ("Opening widths", "Follow a door past the end of its wall stretch to its far jamb; "
+              "jamb intervals include residual drift", openings_round)}
 
 
 def main():
@@ -172,7 +177,7 @@ def main():
                 q = after.get(r["room"], {})
                 lines.append(f"| {r['room']} | {r['A']} / {r['B']} | {q.get('A')} / {q.get('B')} | "
                              f"{r.get('spread_cm', 'n/a')} cm | {q.get('spread_cm', 'n/a')} cm |")
-        elif n == 5:
+        elif n in (5, 7):
             lines += ["", "| Capture pair | Openings before | Matched before | Openings after | Matched after |",
                       "| --- | --- | --- | --- | --- |"]
             for p_, c in res["after"]["pairs"].items():

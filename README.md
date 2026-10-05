@@ -164,9 +164,10 @@ Every `plan.json` validates against [docs/plan.schema.json](docs/plan.schema.jso
    corners are moved to where the measured faces meet. The error model is described at the top of
    the file.
 8. **Openings** (`ysplan/openings.py`): along every wall line of the plan, a door, opening or
-   window is a gap in solid wall (wall points at most heights) that carving rays crossed. Each
+   window is a gap in solid wall (wall points at most heights) that carving rays crossed. A
+   door where a room outline stops is followed along its wall line to its far jamb. Each
    jamb is the edge of solid wall, measured per height slice, so clutter beside a door cannot
-   move it; its spread over the slices sets the width interval.
+   move it; its spread over the slices and the capture's residual drift set the width interval.
 
 ## Output schema (`plan.json`)
 
