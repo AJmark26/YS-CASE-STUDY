@@ -12,10 +12,10 @@ Three models, all permissively licensed and run on CPU:
 
 Frames are turned upright first (the phone may have been held sideways), since all three models
 were trained on upright photos. Each frame's masks are then mapped onto the plan's surfaces with
-the frame's depth and pose, exactly like the colour textures in damage.unwrap: a cell of a wall,
-floor or ceiling is damaged when at least MIN_FRAC of the depth points that landed on it came
-from a damage mask. That projection also drops detections on objects: a basket or a curtain
-fold is not on a wall, floor or ceiling, so its pixels land on no surface.
+the frame's depth and pose, exactly like the colour textures in damage.unwrap: a cell of a wall
+or ceiling is damaged when at least MIN_FRAC of the depth points that landed on it came from a
+damage mask. That projection also drops detections on objects: a basket or a curtain fold is not
+on a wall or ceiling, so its pixels land on no surface. Floors are left out (SURFACES).
 
 `run()` returns the same damage record as damage.run (regions, concealed-damage flags, scope),
 so every tier can use it: LiDAR and video keyframes, or the photos of the photo tier.
@@ -33,6 +33,8 @@ DINO_SIZE = 800          # shortest image side given to Grounding DINO
 MAX_BOX_FRAC = 0.5       # a box over half the image is the whole surface, not a defect
 CLIP_MIN = 0.8           # the damage texts together must reach this probability
 MIN_FRAC = 0.34          # share of a cell's depth points that must come from damage masks
+SURFACES = ("wall", "ceiling")   # on floors, mats, cables and marks on tiles were all false alarms
+CRACK_WIDEN = 0.016      # crack masks grow by this share of the image size (about 2 cm each side at 2 m)
 VIDEO_WALL_BAND = (-0.5, 0.1)   # video tier: learned depth blurs walls and outlines sit 0.2-0.5 m inside them
 CLIP_TEXTS = {
     "water_stain": ["a brown water stain on a wall", "a water stain on a ceiling", "peeling paint from water damage"],
@@ -206,6 +208,9 @@ def run(cap, poses, plan, frames, wall_band=None, wet=None, log=print, min_area_
             for c, mk, _, _ in dets:
                 p, ch = CHANNEL[c]
                 if p == ps:
+                    if c == "crack":   # a hairline mask is thinner than a depth pixel: widen it to a crack zone
+                        k = max(3, int(CRACK_WIDEN * max(shape))) | 1
+                        mk = cv2.dilate(mk.astype(np.uint8), np.ones((k, k), np.uint8)).astype(bool)
                     img[mk, ch] = 255
             coded.append((f, np.ascontiguousarray(img[..., ::-1])))
         surfs = damage.unwrap(cap, poses, plan, ids, None, log=lambda *a: None, wall_band=band, frames=coded)
@@ -218,6 +223,8 @@ def run(cap, poses, plan, frames, wall_band=None, wet=None, log=print, min_area_
     # one surface texture set for the regions (its counts say what was seen)
     regs = []
     for s in surfs:
+        if s.kind not in SURFACES:
+            continue
         dets = []
         for c in CHANNEL:
             fr = fracs.get((s.sid, c))
