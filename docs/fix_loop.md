@@ -300,3 +300,40 @@ upper heights (the merged double doors), and search the wall lines neither room 
 an outline on (9 of the 24 misses before this round). A tape-measured set of door widths would
 let the gate be scored against truth instead of against a second capture, which doubles the
 error.
+
+## Round 8: floor areas from predicted depth (declared before the fix)
+
+- **Gate and number.** Calibration: the brief caps the total for confident wrong answers, so a
+  printed interval should hold. On the video and photo tiers, each floor area and footprint is
+  compared with the LiDAR plan of the same capture (each video room with the LiDAR room holding
+  most of it, each photo room with the LiDAR room its folder is named after). The 95% interval
+  holds for 7 of 20: video rooms 4 of 8, video footprints 1 of 2, photo rooms 2 of 8, photo
+  footprints 0 of 2. 18 of the 20 come out below the LiDAR value, by up to 85% (photo room R2
+  of the bedroom capture: 1.03 against 6.89 m²); the whole-apartment footprints are 28% short
+  on both tiers (37.0 ± 3.9 and 36.1 ± 4.8 against 51.1 m²).
+- **Root cause, with evidence.** The area interval is built from wall-face scatter
+  (`measure.area`: perimeter times the mean wall sigma, plus the photo tier's scale error). It
+  has no term for floor missing from the outline, and that is what makes these areas short.
+  On video, predicted depth smears each wall into a band 0.3 to 0.5 m thick and the outline
+  stops at the band's inner edge, 0.2 to 0.5 m inside the wall (benchmark report, Tiers
+  against LiDAR); the living room also splits into two video rooms (R2 and R5 both lie in
+  LiDAR R1). On photo, the stills see part of each floor and the outline is fitted to the part
+  they saw. Both only remove floor: the 2 areas above the LiDAR value (photo R2 +16%, R3 +1%)
+  are inside their intervals, and no interval misses on the high side.
+- **Fix.** On the two tiers whose depth is predicted, report every floor area and the footprint
+  as a lower bound, the way an unseen ceiling is reported: `status: "lower_bound"`,
+  `lower_bound_m2` = outline area less its 95% half-width (so wall noise that pushes an outline
+  out cannot lift the bound past the room), and value, sigma and interval null. The outline
+  area stays in `outline_m2` for checking, and `plan.png` prints "≥ 9.0 m²". LiDAR plans do
+  not change. The benchmark scores a lower bound as holding when the LiDAR value is at or
+  above it.
+- **Prediction.** The numbers above were read before declaring, from the current plans rerun at
+  this commit from cached depth, so this checks the rule on the outputs it was written from
+  and is not an independent test. The claims that hold go from 7 of 20 to 20 of 20: all 8
+  video rooms, both video footprints, all 8 photo rooms and both photo footprints. The bounds
+  are loose: the median bound is about 0.4 of the LiDAR area (0.09 to 0.88). LiDAR plans are
+  identical, and the video and photo outlines, walls and openings do not move.
+- **Cost.** These tiers stop giving a floor-area estimate; they give only "at least". Correcting
+  the shortfall instead would need a model of what is missing, and it differs by tier (wall
+  bands of 0.2 to 0.5 m on video, floor the stills never saw on photo) and by capture; nothing
+  in a new capture measures it.
