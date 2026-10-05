@@ -4,7 +4,8 @@
 
 `python -m ysplan <capture>` turns one phone capture into `plan.json` and `plan.png`. The
 output covers rooms, walls, ceiling heights, floor areas, openings and adjacency, plus damage
-regions, concealed-damage flags and scope items at the LiDAR tier, each measurement with a 95%
+regions, concealed-damage flags and scope items (a classical detector on LiDAR, a learned one on
+video and photo), each measurement with a 95%
 interval, in the schema of `docs/plan.schema.json`. The tier is picked from what the capture contains. The capture route
 is Route 2: the free Stray Scanner app for LiDAR, the stock Camera app for video and photos,
 and a one-page protocol (`docs/capture_protocol.md`).
@@ -28,7 +29,7 @@ both measurements share is invisible to it. `docs/benchmark_report.md` has every
 | Walls | Each room squared on its own; each face = median of its points within 5 cm | Fix loop round 1 |
 | Ceilings | Robust ceiling level minus this room's own floor level | Fix loop round 3 |
 | Openings | Gaps in solid wall along every wall line, proven open by rays, followed past the end of a room outline to the far jamb; jambs per height slice | Fix loop rounds 5 and 7 |
-| Damage | Surfaces unwrapped at 1 cm per pixel; pluggable detector; masks to m²; rules CD1 to CD5; scope keyed to surface ids | Metric extent comes from the geometry, not from the detector |
+| Damage | Surfaces unwrapped at 1 cm per pixel; classical detector, or learned on video and photo; masks to m²; rules CD1 to CD5; scope keyed to surface ids | Metric extent comes from the geometry, not from the detector |
 
 The video tier makes a depth map for every 40th frame (MapAnything, given the ARKit poses
 and intrinsics, so the depth is metric and consistent across views) and then runs the same
@@ -215,9 +216,14 @@ Known failure modes, worst first:
 5. **Mirrors and glass.** Ghosts seen briefly are removed by the 3-hit voxel rule; a mirror
    looked at for long produces a phantom room behind the wall.
 6. **Closed doors.** A closed door is wall: the rooms either side are separate and unconnected.
-7. **Damage.** The built-in detector is classical (colour departure from the surface): on
+7. **Damage.** The LiDAR detector is classical (colour departure from the surface): on
    synthetic stains painted into real keyframes it found both classes (area within 21% and 5%,
-   inside the intervals) and 3 false regions. A learned detector plugs into the same interface.
+   inside the intervals) and 3 false regions. Video and photo use a learned detector (Grounding
+   DINO, CLIP, SAM 2: open models, no damage-specific training; `docs/damage_learned.md`) whose frame masks
+   are mapped onto walls and ceilings by a vote across views. With real damage photos laid onto
+   the sample walls it found the mould on every tier and raised no false regions on clean walls;
+   stains and cracks are found less reliably, and the samples' one real crack, a hairline seen
+   closely in one frame, is not reported. It adds 2 to 5 minutes on 4 CPU cores.
 8. **Lower-tier outlines.** Video walls land within a few centimetres, but its footprint is 28 to
    42% short: keyframe depth varies 11 to 16% in scale, walls blur into bands 0.3 to 0.5 m thick,
    and outlines stop at their inner edge. A photo room is measured as the part its stills saw, with an

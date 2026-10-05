@@ -24,7 +24,7 @@ Status key: **met**, **partial** (exists, with the gap named), **not met** (and 
 |---|---|---|---|
 | Per-room walls, ceiling height, floor area, openings | `ysplan/measure.py`, `ysplan/openings.py` | `rooms[]`, `openings[]` in `plan.json` | met |
 | Stitched multi-room plan with adjacency | `ysplan/rooms.py`, `ysplan/pipeline_lidar.py` | `rooms[]` in one frame, `adjacency[]`, `plan.png` | met (LiDAR, video); partial for photos: rooms are joined at doorways photographed from both sides (`ysplan/stitch.py`), 3 of 8 sample rooms |
-| Damage regions with class and metric extent | `ysplan/damage.py` | `damage.regions[]` with `area_m2` per surface | met at the LiDAR tier with a classical detector (the video and photo tiers do not run damage detection); learned detector not built (the detector interface accepts one) |
+| Damage regions with class and metric extent | `ysplan/damage.py`, `ysplan/damage_learned.py` | `damage.regions[]` with `area_m2` per surface | met: a classical detector at the LiDAR tier; a learned detector (Grounding DINO, CLIP, SAM 2) on the video and photo tiers, and on LiDAR with `--damage-detector learned`; in small tests it found laid-on mould on every tier, stains and cracks less reliably (`docs/damage_learned.md`) |
 | Concealed-damage flags with the rule that fired | `ysplan/damage.py` (`RULES`, CD1 to CD5) | `damage.flags[]` with `rule` and evidence | met |
 | Scope line items keyed to surfaces | `ysplan/damage.py` | `damage.scope[]` keyed to wall, floor and ceiling ids | met |
 | Interval on every measurement | `ysplan/measure.py` | every value is `{value, sigma, ci95}` | met; where the data cannot bound a value from above it says so: an unseen ceiling, and floor areas on the video and photo tiers, are lower bounds |
@@ -41,7 +41,7 @@ which gates can be measured and how.
 | Requirement | File | Artifact | Status |
 |---|---|---|---|
 | Multi-room capture, three or more rooms plus a connector | supplied captures `1a8384c3f6`, `c7d28f72c6` | 5 and 6 rooms with a hall | met |
-| Furnished room with staged damage in two classes | `scripts/damage_synthetic.py` | synthetic stains painted into real keyframes | partial: no staged real damage |
+| Furnished room with staged damage in two classes | `scripts/damage_synthetic.py`, `scripts/damage_learned_synthetic.py` | synthetic stains painted into real keyframes (classical); photos of real stain, mould and crack laid onto the sample walls (learned) | partial: no damage staged in a real room |
 | Same rooms at all three tiers | photo sets cut from the capture videos (`scripts/make_photo_set.py`) | photo, video and LiDAR runs of the same rooms | partial: photos are video frames, not stills |
 | A room captured twice at one tier | the three captures overlap (bedroom, bathroom, hall) | 3 capture pairs | met |
 | Laser or tape ground truth | none | | not met: no hardware; every accuracy number is a consistency number and says so |

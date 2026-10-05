@@ -22,8 +22,9 @@ bash scripts/fetch_weights.sh            # monocular depth model for the video t
 
 On a headless Linux box Open3D also needs `apt install libegl1 libgl1`.
 
-The video and photo tiers get their best depth from learned models (MapAnything and MoGe-2),
-installed separately because they are large (about 6 GB with PyTorch on CPU):
+The video and photo tiers get their best depth from learned models (MapAnything and MoGe-2) and
+find damage with three more (Grounding DINO, CLIP and SAM 2), installed separately because they
+are large (about 7.5 GB with PyTorch on CPU):
 
 ```
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
@@ -31,7 +32,8 @@ pip install -r requirements-learned.txt
 bash scripts/fetch_learned.sh
 ```
 
-Without them the video tier falls back to the monocular model above and says so. The default
+Without them the video tier falls back to the monocular model above and says so, and the video
+and photo tiers skip damage detection with a message. The default
 MapAnything checkpoint is licensed CC-BY-NC (non-commercial use). For a commercial deployment
 set `YS_MAPANYTHING=facebook/map-anything-apache` (Apache-2.0); on the sample frames that
 checkpoint's depth comes out 27 to 32% short of LiDAR, so it would need a scale correction or
@@ -205,3 +207,4 @@ loop closures and the misalignment before and after correction.
 | Video, ARKit poses | Runs (MapAnything depth); 13 of 19 walls within 3% of LiDAR, but rooms fragment and the footprint comes out 28 to 42% short, so areas are reported as lower bounds; ceilings withheld |
 | Video, no poses | Experimental: runs, recovers no room |
 | Photo | Runs (MapAnything, MoGe-2 scale); 3 of 8 sample rooms stitched at doorways, cameras within 0.30 m of truth; floor area within 8% of LiDAR on 1 of 8 rooms, 30 to 85% short on six, so areas are reported as lower bounds |
+| Damage | LiDAR: classical detector, found both synthetic stain classes. Video and photo: learned detector (Grounding DINO, CLIP, SAM 2), also on LiDAR with `--damage-detector learned`; with real damage photos laid onto the sample walls it found the mould on every tier and no false regions on clean walls, stains and cracks less reliably ([docs/damage_learned.md](docs/damage_learned.md)) |
