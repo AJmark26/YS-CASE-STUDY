@@ -43,10 +43,31 @@ A bias that both measurements share is invisible to all of these.
 | Drift accountability | ablation on the whole-apartment capture | loop misalignment 16.4 cm to 2.3 cm; footprint and rooms below | met |
 | Video tier: walls within 3% | 19 walls over 2 captures, against LiDAR | 68% (13 of 19); median 2.27% (3.2 cm); 18 of 19 inside the 95% interval | fail |
 | Photo tier: walls within 8%, stitched plan | 8 rooms over 2 captures, against LiDAR | floor area within 8% on 1 of 8 rooms, room sides on 3 of 16; 3 of 8 rooms stitched, cameras within 0.30 m of truth | fail |
-| Head-to-head against a consumer app | | not run: needs the rooms and a LiDAR iPhone | not met |
+| Head-to-head against a consumer app | | not run: needs the rooms, a LiDAR iPhone and a laser; the scoring script and steps are ready | not met |
 
 The ceiling result is "repeatable but bias unknown": the halves agree, and nothing here can
 show whether both are off by the same amount.
+
+The head-to-head can be run in one visit. Scan each of two rooms with Stray Scanner and with
+magicplan or Polycam's room mode on the same iPhone, then:
+
+1. `python -m ysplan <capture> -o out/h2h_<room>` and
+   `python scripts/head_to_head.py template out/h2h_<room>/plan.json h2h_<room>.csv`: a sheet of
+   every wall, floor area, ceiling height and opening in our plan, with our value so each can be
+   found on `plan.png`.
+2. Laser-measure each row (walls face to face at about 1 m height, openings jamb to jamb,
+   ceilings at the room's centre) under `truth`, and copy the app's figure under `app`.
+3. `python scripts/head_to_head.py score out/h2h_<room>/plan.json h2h_<room>.csv --json bench/head_to_head_<room>.json`
+   counts wins, ties (errors within 0.5 cm of each other, 0.05 m² for areas) and losses
+   against the brief's 70% rule, and how many laser values fall inside our 95% intervals.
+
+No published figure can stand in for it: magicplan gives no number
+and suggests a Bluetooth laser for exact dimensions
+([help page](https://help.magicplan.app/how-accurate-is-magicplan)); Polycam says "up to 98%"
+under optimal conditions ([help page](https://learn.poly.cam/hc/en-us/articles/27488763119892));
+Apple reports RoomPlan's detection precision and recall (95% for walls and windows, 90% for
+doors), not its dimension errors ([Apple research](https://machinelearning.apple.com/research/roomplan)).
+All three pages were read on 2026-10-05.
 
 ## Repeatability (LiDAR tier)
 

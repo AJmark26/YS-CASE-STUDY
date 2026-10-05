@@ -125,6 +125,7 @@ python scripts/benchmark.py out bench                  # repeatability, openings
 python scripts/ceiling_repeat.py data/c7d28f72c6 bench/ceiling_repeat_c7d28f72c6.json --run out/c7d28f72c6_lidar
 python scripts/fixloop.py --data data --out out        # fix-loop rounds, from the commits before and after each fix
 python scripts/validate_plans.py out                   # every plan.json against docs/plan.schema.json
+python scripts/head_to_head.py template|score <plan.json> <sheet.csv>  # head-to-head with a laser (docs/benchmark_report.md)
 ```
 
 The walk-in rehearsal cuts unseen-looking captures out of the samples and scores their plans

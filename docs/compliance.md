@@ -56,7 +56,7 @@ which gates can be measured and how.
 
 | Requirement | File | Artifact | Status |
 |---|---|---|---|
-| Head-to-head against a consumer app on two rooms | | | not met: needs the rooms and a LiDAR iPhone; the comparison script is ready (`scripts/register_plans.py` aligns any two plans) |
+| Head-to-head against a consumer app on two rooms | `scripts/head_to_head.py`, steps in `docs/benchmark_report.md` | `bench/head_to_head_<room>.json` once run | not met: needs the rooms, a LiDAR iPhone and a laser. Ready to run in one visit: the script makes the measuring sheet from our plan and scores the brief's rule (beat or tie on 70% of dimensions) |
 | Fix loop: declaration, shipped fix, regenerable before and after | `docs/fix_loop.md`, `scripts/fixloop.py` (before and after commits listed in it) | `bench/fixloop/round<n>.{json,md}` | met |
 | Process evidence | git history | commits as the work happened | met |
 

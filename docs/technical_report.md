@@ -148,7 +148,7 @@ those errors.
 | Drift accountability | ablation | section 4 | met |
 | Video walls within 3% | 19 walls against LiDAR | 68%; median 2.27% | fail |
 | Photo walls within 8%, stitched | 8 rooms against LiDAR | area within 8% on 1 of 8; 3 of 8 rooms stitched | fail |
-| Head-to-head against a consumer app | | needs the rooms and a LiDAR iPhone | not met |
+| Head-to-head against a consumer app | | needs the rooms, a LiDAR iPhone and a laser; scoring script ready | not met |
 
 Timing, one run at a time on 4 CPU cores without a GPU: a one-room capture runs in 25 to 80 s;
 the 215 s whole-home walk takes 2 minutes for the plan and 12 with damage detection.
